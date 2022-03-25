@@ -8,6 +8,7 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
@@ -15,6 +16,9 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class HadoopWordCount extends Configured implements Tool {
 
@@ -25,12 +29,28 @@ public class HadoopWordCount extends Configured implements Tool {
 
         @Override
         public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-
+            // Io  non sono sicuro sia quello che vuole lui ma penso sia qualcosa di simile
+            //TODO aggiungere al pattern delle word la possibilità di avere anche il carattere '-'
             String[] splitLine = value.toString().split(" ");
 
+            String patternNumber = "(\\d+)"; // numbers' pattern
+            String patterWord = "(\\w+)"; // words' pattern
+
+            Pattern rn = Pattern.compile(patternNumber); // compiling the pattern
+            Pattern rw = Pattern.compile(patterWord);
+
             for (String w : splitLine) {
-                word.set(w);
-                context.write(word, one);
+                Matcher m = rn.matcher(w);
+                if(m.find()) { // check if we find a digit
+                    word.set(m.group(0));
+                    context.write(word, one);
+                } else{
+                    Matcher mw = rw.matcher(w);
+                    if(mw.find()){ // else it is a word
+                        word.set(mw.group(0));
+                        context.write(word, one);
+                    }
+                }
             }
         }
     }
@@ -49,6 +69,25 @@ public class HadoopWordCount extends Configured implements Tool {
             context.write(key, new IntWritable(sum));
         }
     }
+    public static class PartitionerClass extends Partitioner<Text, IntWritable>
+    {
+        // Class for partitioning the output
+        @Override
+        public int getPartition(Text text, IntWritable intWritable, int numReduceTasks) {
+            String str = text.toString();
+            String patternNumber = "(\\d+)"; // numbers' pattern
+
+            Pattern rn = Pattern.compile(patternNumber); // compiling the pattern
+
+            Matcher m = rn.matcher(str);
+
+            if(m.find()) { // file 0 - numbers, file 1 - words
+                return 0;
+            }
+            else
+                return 1;
+        }
+    }
 
     @Override
     public int run(String[] args) throws Exception {
@@ -61,15 +100,17 @@ public class HadoopWordCount extends Configured implements Tool {
         job.setMapperClass(Map.class);
         job.setCombinerClass(Reduce.class);
         job.setReducerClass(Reduce.class);
+        job.setPartitionerClass(PartitionerClass.class);
 
         job.setInputFormatClass(TextInputFormat.class);
         job.setOutputFormatClass(TextOutputFormat.class);
+        job.setNumReduceTasks(2); // use two different reducers for numbers or words
 
         FileInputFormat.setInputPaths(job, new Path(args[0]));
         FileOutputFormat.setOutputPath(job, new Path(args[1]));
 
-        job.waitForCompletion(true);
-        return 0;
+
+        return job.waitForCompletion(true) ? 0: 1;
     }
 
     public static void main(String[] args) throws Exception {
