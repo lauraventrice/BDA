@@ -29,12 +29,11 @@ public class HadoopWordCount extends Configured implements Tool {
 
         @Override
         public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-            // Io  non sono sicuro sia quello che vuole lui ma penso sia qualcosa di simile
-            //TODO aggiungere al pattern delle word la possibilità di avere anche il carattere '-'
+            //TODO 12.213.123 perdiamo il 123 (CI INTERESSA?)
             String[] splitLine = value.toString().split(" ");
 
-            String patternNumber = "(\\d+)"; // numbers' pattern
-            String patterWord = "(\\w+)"; // words' pattern
+            String patternNumber = "(\\d+)((\\.)(\\d+))?"; // numbers' pattern
+            String patterWord = "(\\w+)(([\\-])+(\\w+))*"; // words' pattern
 
             Pattern rn = Pattern.compile(patternNumber); // compiling the pattern
             Pattern rw = Pattern.compile(patterWord);
@@ -69,8 +68,8 @@ public class HadoopWordCount extends Configured implements Tool {
             context.write(key, new IntWritable(sum));
         }
     }
-    public static class PartitionerClass extends Partitioner<Text, IntWritable>
-    {
+
+    public static class PartitionerClass extends Partitioner<Text, IntWritable> {
         // Class for partitioning the output
         @Override
         public int getPartition(Text text, IntWritable intWritable, int numReduceTasks) {
