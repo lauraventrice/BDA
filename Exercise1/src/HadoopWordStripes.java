@@ -7,6 +7,7 @@ import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
@@ -17,6 +18,8 @@ import org.apache.hadoop.util.ToolRunner;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class HadoopWordStripes extends Configured implements Tool {
 
@@ -27,6 +30,12 @@ public class HadoopWordStripes extends Configured implements Tool {
 		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
 			
 			String[] splitLine = value.toString().split(" ");
+
+			String patternNumber = "(\\d+)((\\.)(\\d+))?"; // numbers' pattern
+			String patterWord = "(\\w+)(([\\-])+(\\w+))*"; // words' pattern
+
+			Pattern rn = Pattern.compile(patternNumber); // compiling the pattern
+			Pattern rw = Pattern.compile(patterWord);
 
 			for (int i = 0; i < splitLine.length; i++) {
 				MapWritable map = new MapWritable();
@@ -42,7 +51,15 @@ public class HadoopWordStripes extends Configured implements Tool {
 					stripe(w, map);
 				}
 
-				context.write(new Text(splitLine[i]), map);
+				Matcher m = rn.matcher(splitLine[i]);
+				if(m.find()) { // check if we find a digit
+					context.write(new Text(m.group(0)), map);
+				} else{
+					Matcher mw = rw.matcher(splitLine[i]);
+					if(mw.find()){ // else it is a word
+						context.write(new Text(mw.group(0)), map);
+					}
+				}
 			}
 		}
 
@@ -94,6 +111,26 @@ public class HadoopWordStripes extends Configured implements Tool {
 		}
 	}
 
+	public static class PartitionerClass extends Partitioner<Text, MapWritable> {
+		// Class for partitioning the output
+
+		@Override
+		public int getPartition(Text text, MapWritable mapWritable, int i) {
+			String str = text.toString();
+			String patternNumber = "(\\d+)"; // numbers' pattern
+
+			Pattern rn = Pattern.compile(patternNumber); // compiling the pattern
+
+			Matcher m = rn.matcher(str);
+
+			if(m.find()) { // file 0 - numbers, file 1 - words
+				return 0;
+			}
+			else
+				return 1;
+		}
+	}
+
 	@Override
 	public int run(String[] args) throws Exception {
 		Job job = Job.getInstance(new Configuration(), "HadoopWordStripes");
@@ -105,6 +142,9 @@ public class HadoopWordStripes extends Configured implements Tool {
 		job.setMapperClass(Map.class);
 		job.setCombinerClass(Reduce.class);
 		job.setReducerClass(Reduce.class);
+		job.setPartitionerClass(PartitionerClass.class);
+
+		job.setNumReduceTasks(2); // use two different reducers for numbers or words
 
 		job.setInputFormatClass(TextInputFormat.class);
 		job.setOutputFormatClass(TextOutputFormat.class);
