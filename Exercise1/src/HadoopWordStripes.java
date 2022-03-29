@@ -26,6 +26,8 @@ public class HadoopWordStripes extends Configured implements Tool {
 	public static class Map extends Mapper<LongWritable, Text, Text, MapWritable> {
 		private final static IntWritable one = new IntWritable(1);
 
+		int maxDistance = 5; // max distante for the tokens
+
 		@Override
 		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
 			
@@ -51,13 +53,20 @@ public class HadoopWordStripes extends Configured implements Tool {
 					stripe(w, map);
 				}
 
-				Matcher m = rn.matcher(splitLine[i]);
-				if(m.find()) { // check if we find a digit
-					context.write(new Text(m.group(0)), map);
-				} else{
-					Matcher mw = rw.matcher(splitLine[i]);
-					if(mw.find()){ // else it is a word
-						context.write(new Text(mw.group(0)), map);
+				//TODO non ho capito la seconda parte del (b)
+				//Se vuole che noi mettiamo un token di una distanza minima allora è super easy
+				//Altrimenti boh non lo so
+				//Ciao Laura sei la mia prefe
+
+				if(splitLine[i].length()<maxDistance) { //this is for (b)
+					Matcher m = rn.matcher(splitLine[i]);
+					if (m.find()) { // check if we find a digit
+						context.write(new Text(m.group(0)), map);
+					} else {
+						Matcher mw = rw.matcher(splitLine[i]);
+						if (mw.find()) { // else it is a word
+							context.write(new Text(mw.group(0)), map);
+						}
 					}
 				}
 			}
