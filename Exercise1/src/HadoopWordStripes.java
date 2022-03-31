@@ -56,7 +56,7 @@ public class HadoopWordStripes extends Configured implements Tool {
 				//TODO non ho capito la seconda parte del (b)
 				//Se vuole che noi mettiamo un token di una distanza minima allora è super easy
 				//Altrimenti boh non lo so
-				//Ciao Laura sei la mia prefe
+				//Ciao Laura sei la mia prefe <3
 
 				if(splitLine[i].length()<maxDistance) { //this is for (b)
 					Matcher m = rn.matcher(splitLine[i]);
@@ -65,7 +65,7 @@ public class HadoopWordStripes extends Configured implements Tool {
 					} else {
 						Matcher mw = rw.matcher(splitLine[i]);
 						if (mw.find()) { // else it is a word
-							context.write(new Text(mw.group(0)), map);
+							context.write(new Text(mw.group(0).toLowerCase()), map);
 						}
 					}
 				}

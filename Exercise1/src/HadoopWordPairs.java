@@ -56,7 +56,7 @@ public class HadoopWordPairs extends Configured implements Tool {
 					}
 					lastNumber.set(m.group(0));
 				} else{
-					Matcher mw = rw.matcher(w);
+					Matcher mw = rw.matcher(w.toLowerCase());
 					if(mw.find()){ // else it is a word
 						lengthWord = lastWord.getLength();
 						if(lengthWord > 0 && (lengthWord + mw.group(0).length()) < maxDistance) {

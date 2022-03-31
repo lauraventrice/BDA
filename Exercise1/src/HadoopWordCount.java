@@ -30,6 +30,7 @@ public class HadoopWordCount extends Configured implements Tool {
         @Override
         public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
             //TODO 12.213.123 perdiamo il 123 (CI INTERESSA?)
+            //TODO Il _ vale come parola da solo? (credo di si ma mica ne sono sicuro)
             String[] splitLine = value.toString().split(" ");
 
             String patternNumber = "(\\d+)((\\.)(\\d+))?"; // numbers' pattern
@@ -44,7 +45,7 @@ public class HadoopWordCount extends Configured implements Tool {
                     word.set(m.group(0));
                     context.write(word, one);
                 } else{
-                    Matcher mw = rw.matcher(w);
+                    Matcher mw = rw.matcher(w.toLowerCase());
                     if(mw.find()){ // else it is a word
                         word.set(mw.group(0));
                         context.write(word, one);
