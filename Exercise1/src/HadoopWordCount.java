@@ -29,8 +29,6 @@ public class HadoopWordCount extends Configured implements Tool {
 
         @Override
         public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-            //TODO 12.213.123 perdiamo il 123 (CI INTERESSA?)
-            //TODO Il _ vale come parola da solo? (credo di si ma mica ne sono sicuro)
             String[] splitLine = value.toString().split(" ");
 
             String patternNumber = "(\\d+)((\\.)(\\d+))?"; // numbers' pattern
@@ -83,9 +81,9 @@ public class HadoopWordCount extends Configured implements Tool {
 
             if(m.find()) { // file 0 - numbers, file 1 - words
                 return 0;
-            }
-            else
+            } else {
                 return 1;
+            }
         }
     }
 

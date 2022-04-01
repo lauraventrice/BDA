@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.sun.org.apache.xerces.internal.impl.xpath.regex.Match;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
@@ -25,15 +26,12 @@ public class HadoopWordPairs extends Configured implements Tool {
 		private final static IntWritable one = new IntWritable(1);
 		private Text pair = new Text();
 
-		private Text lastWord = new Text();
-		private Text lastNumber = new Text();
-
-		int maxDistance = 5; // max distante for the tokens
+		private Text current = new Text();
+		int maxDistance = 2; // max distance between tokens
 
 		@Override
 		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
 
-			// Chissà se ha senso ciò che ho fatto :)
 			String[] splitLine = value.toString().split(" ");
 
 			String patternNumber = "(\\d+)((\\.)(\\d+))?"; // numbers' pattern
@@ -41,7 +39,36 @@ public class HadoopWordPairs extends Configured implements Tool {
 
 			Pattern rn = Pattern.compile(patternNumber); // compiling the pattern
 			Pattern rw = Pattern.compile(patterWord);
+			Matcher mn, mw;
+			int length = 0;
 
+			for (int i = 0; i < splitLine.length; i++) {
+				mn = rn.matcher(splitLine[i]);
+				current.set(splitLine[i]);
+				if(mn.find()) {
+
+					for(int j = i + 1; j - i < maxDistance && j < splitLine.length; j++) {
+						mn = rn.matcher(splitLine[j]);
+						if(mn.find()) {
+							pair.set(current + ":" + mn.group(0));
+							context.write(pair, one);
+						}
+					}
+				} else {
+					mw = rw.matcher(splitLine[i]);
+					if(mw.find()) {
+						for(int j = i + 1; j - i < maxDistance && j < splitLine.length; j++) {
+							mw = rw.matcher(splitLine[j]);
+							if(mw.find()) {
+								pair.set(current + ":" + mw.group(0));
+								context.write(pair, one);
+							}
+						}
+					}
+				}
+
+			}
+/*
 
 			int lengthWord;
 			int lengthNumber;
@@ -66,7 +93,7 @@ public class HadoopWordPairs extends Configured implements Tool {
 						lastWord.set(mw.group(0));
 					}
 				}
-			}
+			}*/
 		}
 	}
 
