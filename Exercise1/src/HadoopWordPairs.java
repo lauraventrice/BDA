@@ -40,13 +40,11 @@ public class HadoopWordPairs extends Configured implements Tool {
 			Pattern rn = Pattern.compile(patternNumber); // compiling the pattern
 			Pattern rw = Pattern.compile(patterWord);
 			Matcher mn, mw;
-			int length = 0;
 
 			for (int i = 0; i < splitLine.length; i++) {
 				mn = rn.matcher(splitLine[i]);
-				current.set(splitLine[i]);
 				if(mn.find()) {
-
+					current.set(mn.group(0));
 					for(int j = i + 1; j - i < maxDistance && j < splitLine.length; j++) {
 						mn = rn.matcher(splitLine[j]);
 						if(mn.find()) {
@@ -57,6 +55,7 @@ public class HadoopWordPairs extends Configured implements Tool {
 				} else {
 					mw = rw.matcher(splitLine[i]);
 					if(mw.find()) {
+						current.set(mw.group(0));
 						for(int j = i + 1; j - i < maxDistance && j < splitLine.length; j++) {
 							mw = rw.matcher(splitLine[j]);
 							if(mw.find()) {
