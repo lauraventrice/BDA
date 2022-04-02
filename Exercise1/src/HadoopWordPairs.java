@@ -34,8 +34,8 @@ public class HadoopWordPairs extends Configured implements Tool {
 
 			String[] splitLine = value.toString().split(" ");
 
-			String patternNumber = "(\\d+)((\\.)(\\d+))?"; // numbers' pattern
-			String patterWord = "(\\w+)(([\\-])+(\\w+))*"; // words' pattern
+			String patternNumber = "^(\\d+)((\\.)(\\d+))?$"; // numbers' pattern
+			String patterWord = "^([a-z]|[\\_]|[\\-]+)([\\-]|[\\_]|[a-z])*$"; // words' pattern
 
 			Pattern rn = Pattern.compile(patternNumber); // compiling the pattern
 			Pattern rw = Pattern.compile(patterWord);
