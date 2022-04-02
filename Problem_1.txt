@@ -1,1 +1,45 @@
 #Write how to run solution problem 1 and results
+
+(c)
+
+Time computer (AA directory):
+	Count: (end: 37.07, start: 36.45) 22 seconds
+	Pairs: (end: 25.12, start: 24.17) 55 seconds
+	Stripes: (end: 43.03, start: 41.41) 82 seconds
+
+Time computer (AA/AB directories):
+	Count: (end: 56.59, start: 56.16) 43 seconds
+	Pairs: (end: 28.40, start: 26.55) 105 seconds
+	Stripes: (end: 46.58, start: 44.18) 160 seconds
+	
+Time computer (AA/AB/AC directories):
+	Count: (end: 09.24, start: 08.18) 66 seconds
+	Pairs: (end: 33.38, start: 30.55) 163 seconds
+	Stripes: (end: 52.02, start: 47.57) 245 seconds
+
+Time computer (AA/AB/AC/AD directories):
+	Count: (end: 12:45, start: 11.17) 88 seconds
+	Pairs: (end: 39.19, start: 35.24) 235 seconds
+	Stripes: (end: 58.51, start: 53.26) 325 seconds
+
+(d)
+
+Time computer (m=1):
+	Pairs: (end: 04.50, start: 04.37)  13 seconds
+	Stripes: (end: 03.21, start: 02.36) 45 seconds
+
+Time computer (m=5):
+	Pairs: (end: 25.12, start: 24.17) 55 seconds
+	Stripes: (end: 43.03, start: 41.41) 82 seconds
+
+Time computer (m=10):
+	Pairs: (end: 08.25, start: 06.52) 93 seconds
+	Stripes: (end: 12.20, start: 10.13) 127 seconds
+
+// Commento per me e Laura, al momento ho fatto solo count, ma nota come ogni cartella aumenti di 
+// circa 20 secondi (non so serva come osservazione) 
+
+//Da fare:
+Provide some brief instructions on how to run your solution to each problem in a file called Problem X.txt, 
+and report also the most important results (such as number of results, runtimes, etc.) of your solutions 
+to that problem within this file. 

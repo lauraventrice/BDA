@@ -127,7 +127,10 @@ public class HadoopWordCount extends Configured implements Tool {
         job.setNumReduceTasks(2); // use two different reducers for numbers or words
 
         FileInputFormat.setInputPaths(job, new Path(args[0]));
-        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+        for(int i = 1; i<args.length-1;i++) {
+            FileInputFormat.addInputPath(job, new Path(args[i]));
+        }
+        FileOutputFormat.setOutputPath(job, new Path(args[args.length-1]));
 
 
         return job.waitForCompletion(true) ? 0: 1;

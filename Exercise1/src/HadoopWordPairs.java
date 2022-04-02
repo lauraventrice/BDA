@@ -25,7 +25,7 @@ public class HadoopWordPairs extends Configured implements Tool {
 		private Text pair = new Text();
 
 		private Text current = new Text();
-		int maxDistance = 2; // max distance between tokens
+		int maxDistance = 10; // max distance between tokens
 
 		@Override
 		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
@@ -168,8 +168,11 @@ public class HadoopWordPairs extends Configured implements Tool {
 		job.setInputFormatClass(TextInputFormat.class);
 		job.setOutputFormatClass(TextOutputFormat.class);
 
-		FileInputFormat.setInputPaths(job, args[0]);
-		FileOutputFormat.setOutputPath(job, new Path(args[1]));
+		FileInputFormat.setInputPaths(job, new Path(args[0]));
+		for(int i = 1; i<args.length-1;i++) {
+			FileInputFormat.addInputPath(job, new Path(args[i]));
+		}
+		FileOutputFormat.setOutputPath(job, new Path(args[args.length-1]));
 
 		job.waitForCompletion(true);
 		return 0;
