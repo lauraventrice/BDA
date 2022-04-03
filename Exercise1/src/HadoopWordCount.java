@@ -2,6 +2,7 @@ import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.*;
 import org.apache.hadoop.mapreduce.Job;
@@ -15,6 +16,7 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
+import java.nio.ByteBuffer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -66,25 +68,20 @@ public class HadoopWordCount extends Configured implements Tool {
         }
     }
 
-    public static class ReverseComparator extends WritableComparator {
+    public static class IntComparator extends WritableComparator {
 
-        private static final Text.Comparator TEXT_COMPARATOR = new Text.Comparator();
-        public ReverseComparator() {
-            super(Text.class);
+        public IntComparator() {
+            super(IntWritable.class);
         }
 
         @Override
-        public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
-            return (-1)* TEXT_COMPARATOR.compare(b1, s1, l1, b2, s2, l2);
-        }
+        public int compare(byte[] b1, int s1, int l1,
+                           byte[] b2, int s2, int l2) {
 
-        @SuppressWarnings("rawtypes")
-        @Override
-        public int compare(WritableComparable a, WritableComparable b) {
-            if (a instanceof Text && b instanceof Text) {
-                return (-1)*(((Text) a).compareTo((Text) b));
-            }
-            return super.compare(a, b);
+            Integer v1 = ByteBuffer.wrap(b1, s1, l1).getInt();
+            Integer v2 = ByteBuffer.wrap(b2, s2, l2).getInt();
+
+            return v1.compareTo(v2) * (-1);
         }
     }
 
@@ -107,6 +104,48 @@ public class HadoopWordCount extends Configured implements Tool {
         }
     }
 
+    public static class PartitionerClass2 extends Partitioner<IntWritable, Text> {
+        // Class for partitioning the output
+
+        @Override
+        public int getPartition(IntWritable intWritable, Text text, int i) {
+            String str = text.toString();
+            String patternNumber = "(\\d+)"; // numbers' pattern
+
+            Pattern rn = Pattern.compile(patternNumber); // compiling the pattern
+
+            Matcher m = rn.matcher(str);
+
+            if(m.find()) { // file 0 - numbers, file 1 - words
+                return 0;
+            } else {
+                return 1;
+            }
+        }
+    }
+
+    public static class MapTask extends
+            Mapper<LongWritable, Text, IntWritable, Text> {
+        public void map(LongWritable key, Text value, Context context)
+                throws java.io.IOException, InterruptedException {
+            String line = value.toString();
+            String[] tokens = line.split("\t"); // This is the delimiter between Key and Value
+            int valuePart = Integer.parseInt(tokens[1]);
+            context.write(new IntWritable(valuePart), new Text(tokens[0]));
+        }
+    }
+
+    public static class ReduceTask extends
+            Reducer<IntWritable, Text, Text, IntWritable> {
+        public void reduce(IntWritable key, Iterable<Text> list, Context context)
+                throws java.io.IOException, InterruptedException {
+
+            for (Text value : list) {
+                context.write(value,key);
+            }
+        }
+    }
+
     @Override
     public int run(String[] args) throws Exception {
         Job job = Job.getInstance(new Configuration(), "HadoopWordCount");
@@ -120,8 +159,6 @@ public class HadoopWordCount extends Configured implements Tool {
         job.setReducerClass(Reduce.class);
         job.setPartitionerClass(PartitionerClass.class);
 
-        job.setSortComparatorClass(ReverseComparator.class);
-
         job.setInputFormatClass(TextInputFormat.class);
         job.setOutputFormatClass(TextOutputFormat.class);
         job.setNumReduceTasks(2); // use two different reducers for numbers or words
@@ -130,10 +167,44 @@ public class HadoopWordCount extends Configured implements Tool {
         for(int i = 1; i<args.length-1;i++) {
             FileInputFormat.addInputPath(job, new Path(args[i]));
         }
-        FileOutputFormat.setOutputPath(job, new Path(args[args.length-1]));
+        FileOutputFormat.setOutputPath(job, new Path("./tmp"));
 
 
-        return job.waitForCompletion(true) ? 0: 1;
+        job.waitForCompletion(true);
+
+        Configuration conf = new Configuration(true);
+
+        // Create job
+        Job job2 = Job.getInstance(conf, "Sorting");
+        job2.setJarByClass(HadoopWordCount.class);
+
+        // Setup MapReduce
+        job2.setMapperClass(MapTask.class);
+        job2.setReducerClass(ReduceTask.class);
+        job2.setNumReduceTasks(2);
+
+        // Specify key / value
+        job2.setMapOutputKeyClass(IntWritable.class);
+        job2.setMapOutputValueClass(Text.class);
+        job2.setOutputKeyClass(IntWritable.class);
+        job2.setOutputValueClass(Text.class);
+        job2.setSortComparatorClass(IntComparator.class);
+        job2.setPartitionerClass(PartitionerClass2.class);
+
+        // Input
+        FileInputFormat.addInputPath(job2, new Path("./tmp"));
+        job2.setInputFormatClass(TextInputFormat.class);
+
+        // Output
+        FileOutputFormat.setOutputPath(job2, new Path(args[args.length-1]));
+        job2.setOutputFormatClass(TextOutputFormat.class);
+
+        // Execute job
+        int code = job2.waitForCompletion(true) ? 0 : 1;
+
+        FileSystem hdfs = FileSystem.get(conf);
+        if (hdfs.exists(new Path("./tmp"))) hdfs.delete(new Path("./tmp"), true);
+        return code;
     }
 
     public static void main(String[] args) throws Exception {
