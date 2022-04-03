@@ -14,8 +14,10 @@ object SparkWordCount {
         val textFile = ctx.textFile(args(0))
         val regexW = "^([a-z]|[\\_]|[\\-]+)(([\\-])|([\\_])|([a-z]))*$"
         val regexN = "\\d+(\\.(\\d+))?"
+
         val text = textFile.flatMap(line => line.split(" "))
-        val countsW = text.filter(s => s.matches(regexW))
+
+        val countsW = text.map(s => s.toLowerCase()).filter(s => s.matches(regexW))
                       .map(word => (word, 1))
                       .reduceByKey(_ + _)
 
@@ -23,8 +25,8 @@ object SparkWordCount {
                     .map(word => (word, 1))
                     .reduceByKey(_ + _)
 
-        countsW.saveAsTextFile(args(1))
-        countsN.saveAsTextFile(args(1))
+        countsW.saveAsTextFile(args(1) + "/wordscount")
+        countsN.saveAsTextFile(args(1) + "/numberscount")
         ctx.stop()
     }
 }
