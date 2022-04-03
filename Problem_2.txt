@@ -1,1 +1,5 @@
 #Write how to run our solution to problem2 and results
+
+start: 32.21, end: 34.43 -- 142 seconds
+
+spark-submit --class SparkWordCount SparkWordCount.jar enwiki-articles/AA,enwiki-articles/AB,enwiki-articles/AC,enwiki-articles/AD,enwiki-articles/AE,enwiki-articles/AF,enwiki-articles/AG,enwiki-articles/AH,enwiki-articles/AI,enwiki-articles/AJ,enwiki-articles/AK prova
