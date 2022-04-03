@@ -25,8 +25,12 @@ object SparkWordCount {
                     .map(word => (word, 1))
                     .reduceByKey(_ + _).sortBy(_._2, ascending = false)
 
-        countsW.saveAsTextFile(args(1) + "/wordscount")
-        countsN.saveAsTextFile(args(1) + "/numberscount")
+        val topWords = countsW.take(1000)
+        val topNumbers = countsN.take(1000)
+        ctx.parallelize(topWords).saveAsTextFile(args(1) + "/topWords")
+        ctx.parallelize(topNumbers).saveAsTextFile(args(1) + "/topNumbers")
+        countsW.saveAsTextFile(args(1) + "/wordsCount") //maybe is better saveAsObject? 
+        countsN.saveAsTextFile(args(1) + "/numbersCount")
         ctx.stop()
     }
 }
