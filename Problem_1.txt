@@ -4,40 +4,37 @@
 
 Time computer (AA directory):
 	Count: (end: 30.11, start: 29.43) 28 seconds
-	Pairs: (end: , start: )  seconds
+	Pairs: (end: 17.57, start: 16.36) 81 seconds
 	Stripes: (end: 43.03, start: 41.41) 82 seconds
 
 Time computer (AA/AB directories):
-	Count: (end: , start: ) seconds
-	Pairs: (end: , start: ) seconds
+	Count: (end: 38.39, start: 37.48) 51 seconds
+	Pairs: (end: 22.56, start: 20.27) 149 seconds
 	Stripes: (end: 46.58, start: 44.18) 160 seconds
 	
 Time computer (AA/AB/AC directories):
-	Count: (end: , start: )  seconds
-	Pairs: (end: , start: )  seconds
+	Count: (end: 42.01, start: 40.47) 74 seconds
+	Pairs: (end: 29.03, start: 25.15) 228 seconds
 	Stripes: (end: 52.02, start: 47.57) 245 seconds
 
 Time computer (AA/AB/AC/AD directories):
-	Count: (end: , start: ) seconds
-	Pairs: (end: , start: ) seconds
+	Count: (end: 44.52, start: 43.12) 100 seconds
+	Pairs: (end: 36.18, start: 31.01) 317 seconds
 	Stripes: (end: 58.51, start: 53.26) 325 seconds
 
 (d)
 
 Time computer (m=1):
-	Pairs: (end: , start: )  seconds
+	Pairs: (end: 11.31, start: 10.59) 32 seconds
 	Stripes: (end: 03.21, start: 02.36) 45 seconds
 
 Time computer (m=5):
-	Pairs: (end: , start: )  seconds
+	Pairs: (end: 17.57, start: 16.36) 81 seconds
 	Stripes: (end: 43.03, start: 41.41) 82 seconds
 
 Time computer (m=10):
-	Pairs: (end: , start: )  seconds
+	Pairs: (end: 40.24, start: 38.30) 114 seconds
 	Stripes: (end: 12.20, start: 10.13) 127 seconds
-
-// Commento per me e Laura, al momento ho fatto solo count, ma nota come ogni cartella aumenti di 
-// circa 20 secondi (non so serva come osservazione) 
 
 //Da fare:
 Provide some brief instructions on how to run your solution to each problem in a file called Problem X.txt, 

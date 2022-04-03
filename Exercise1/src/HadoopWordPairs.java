@@ -45,7 +45,7 @@ public class HadoopWordPairs extends Configured implements Tool {
 				mn = rn.matcher(splitLine[i]);
 				if(mn.find()) {
 					current.set(mn.group(0));
-					for(int j = i + 1; j - i < maxDistance && j < splitLine.length; j++) {
+					for(int j = i + 1; j - i <= maxDistance && j < splitLine.length; j++) {
 						mn = rn.matcher(splitLine[j]);
 						if(mn.find()) {
 							pair.set(current + ":" + mn.group(0));
@@ -56,7 +56,7 @@ public class HadoopWordPairs extends Configured implements Tool {
 					mw = rw.matcher(splitLine[i]);
 					if(mw.find()) {
 						current.set(mw.group(0));
-						for(int j = i + 1; j - i < maxDistance && j < splitLine.length; j++) {
+						for(int j = i + 1; j - i <= maxDistance && j < splitLine.length; j++) {
 							mw = rw.matcher(splitLine[j]);
 							if(mw.find()) {
 								pair.set(current + ":" + mw.group(0));
