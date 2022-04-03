@@ -19,11 +19,11 @@ object SparkWordCount {
 
         val countsW = text.map(s => s.toLowerCase()).filter(s => s.matches(regexW))
                       .map(word => (word, 1))
-                      .reduceByKey(_ + _).sortBy(_._2)
+                      .reduceByKey(_ + _).sortBy(_._2, ascending = false)
 
         val countsN = text.filter(s => s.matches(regexN))
                     .map(word => (word, 1))
-                    .reduceByKey(_ + _).sortBy(_._2)
+                    .reduceByKey(_ + _).sortBy(_._2, ascending = false)
 
         countsW.saveAsTextFile(args(1) + "/wordscount")
         countsN.saveAsTextFile(args(1) + "/numberscount")
