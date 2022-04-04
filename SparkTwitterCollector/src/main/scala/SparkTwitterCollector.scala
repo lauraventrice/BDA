@@ -32,14 +32,12 @@ object SparkTwitterCollector {
     val tweet = tweetStream.filter(_.getText.contains("#"))
     //tweet = tweet.filter(_.getLang == "en")
 
-    val regexH = "#([a-z]|[0-9])*"
+    val regexH = "#([a-z]|[0-9])+"
 
-    val json = tweet.map(x => { val gson = new Gson();
-      val xJson = gson.toJson(x.getText)
-      xJson
-    })
+    val json = tweet.map(x => x.getText)
 
-    val text = json.flatMap(line => line.split(" ")).filter(s => s.matches(regexH))
+    val text = json.flatMap(line => line.split(" "))
+      .filter(s => s.matches(regexH))
 
     text.foreachRDD((rdd, time) => {
       val count = rdd.count()
