@@ -1,7 +1,7 @@
+import org.apache.hadoop.shaded.com.google.gson.Gson
 import org.apache.spark.streaming.twitter.TwitterUtils
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.{SparkConf, SparkContext}
-
 import twitter4j.auth.OAuthAuthorization
 import twitter4j.conf.ConfigurationBuilder
 
@@ -29,11 +29,23 @@ object SparkTwitterCollector {
     val ssc = new StreamingContext(sc, Seconds(windowSecs))
 
     val tweetStream = TwitterUtils.createStream(ssc, Some(new OAuthAuthorization(new ConfigurationBuilder().build())))
+    val tweet = tweetStream.filter(_.getText.contains("#"))
+    //tweet = tweet.filter(_.getLang == "en")
 
-    tweetStream.foreachRDD((rdd, time) => {
+    val regexH = "#([a-z]|[0-9])*"
+
+    val json = tweet.map(x => { val gson = new Gson();
+      val xJson = gson.toJson(x.getText)
+      xJson
+    })
+
+    val text = json.flatMap(line => line.split(" ")).filter(s => s.matches(regexH))
+
+    text.foreachRDD((rdd, time) => {
       val count = rdd.count()
-      if (count > 0)
+      if (count > 0) {
         rdd.repartition(partitionsPerInterval).saveAsTextFile(outputDirectory + "/tweets_" + time.milliseconds.toString)
+      }
     })
 
     ssc.start()
