@@ -7,7 +7,7 @@ object SparkWordCount {
     var filename = "../../stopwords.txt"
     var res: BufferedSource = Source.fromFile(filename)
     val lines: Seq[String] = res.getLines.toList
-
+    res.close()
 
     var neg: Boolean => Boolean = !_
 
@@ -25,14 +25,13 @@ object SparkWordCount {
 
         val text = textFile.flatMap(line => line.split(" "))
 
-        val countsW = text.map(s => s.toLowerCase()).filter(s => s.matches(regexW) && neg(lines.contains(s)))
+        val counts = text.map(s => s.toLowerCase()).filter(s => (s.matches(regexW) || s.matches(regexN)) && neg(lines.contains(s)))
                       .map(word => (word, 1))
                       .reduceByKey(_ + _).sortBy(_._2, ascending = false)
 
-        val countsN = text.filter(s => s.matches(regexN))
-                    .map(word => (word, 1))
-                    .reduceByKey(_ + _).sortBy(_._2, ascending = false)
-        res.close()
+        val countsW = counts.filter(s => s._1.matches(regexW))
+        val countsN = counts.filter(s => s._1.matches(regexN))
+
         val topWords = countsW.take(1000)
         val topNumbers = countsN.take(1000)
         ctx.parallelize(topWords).saveAsTextFile(args(1) + "/topWords")
