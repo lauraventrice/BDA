@@ -1,5 +1,3 @@
-import java.io.IOException;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
@@ -16,6 +14,7 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -127,7 +126,7 @@ public class HadoopWordCount extends Configured implements Tool {
     public static class MapTask extends
             Mapper<LongWritable, Text, IntWritable, Text> {
         public void map(LongWritable key, Text value, Context context)
-                throws java.io.IOException, InterruptedException {
+                throws IOException, InterruptedException {
             String line = value.toString();
             String[] tokens = line.split("\t"); // This is the delimiter between Key and Value
             int valuePart = Integer.parseInt(tokens[1]);
@@ -138,7 +137,7 @@ public class HadoopWordCount extends Configured implements Tool {
     public static class ReduceTask extends
             Reducer<IntWritable, Text, Text, IntWritable> {
         public void reduce(IntWritable key, Iterable<Text> list, Context context)
-                throws java.io.IOException, InterruptedException {
+                throws IOException, InterruptedException {
 
             for (Text value : list) {
                 context.write(value,key);
@@ -164,7 +163,7 @@ public class HadoopWordCount extends Configured implements Tool {
         job.setNumReduceTasks(2); // use two different reducers for numbers or words
 
         FileInputFormat.setInputPaths(job, new Path(args[0]));
-        for(int i = 1; i<args.length-1;i++) {
+        for(int i = 1; i < args.length-1; i++) {
             FileInputFormat.addInputPath(job, new Path(args[i]));
         }
         FileOutputFormat.setOutputPath(job, new Path("./tmp"));
