@@ -24,6 +24,11 @@ object SparkWordCount {
         val regexN = "\\d+(\\.(\\d+))?"
 
         val text = textFile.flatMap(line => line.split(" "))
+        /*
+        val broadcastVar = sc.broadcast(Array(0, 1, 2, 3))
+
+        broadcastVar.value
+         */
 
         val counts = text.map(s => s.toLowerCase()).filter(s => (s.matches(regexW) || s.matches(regexN)) && neg(lines.contains(s)))
                       .map(word => (word, 1))
