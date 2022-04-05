@@ -1,3 +1,4 @@
+import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming.twitter.TwitterUtils
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.{SparkConf, SparkContext}
@@ -27,8 +28,7 @@ object SparkTwitterCollector {
     val sc = new SparkContext(conf)
     val ssc = new StreamingContext(sc, Seconds(windowSecs))
 
-    val tweetStream = TwitterUtils.createStream(ssc, Some(new OAuthAuthorization(new ConfigurationBuilder().build())))
-    val tweet = tweetStream.filter(_.getText.contains("#"))
+    val tweet = TwitterUtils.createStream(ssc, Some(new OAuthAuthorization(new ConfigurationBuilder().build())))
     //tweet = tweet.filter(_.getLang == "en")
 
     val regexH = "#([a-z]|[0-9])+"
@@ -38,14 +38,31 @@ object SparkTwitterCollector {
     val text = json.flatMap(line => line.split(" "))
       .filter(s => s.matches(regexH))
 
-    text.foreachRDD((rdd, time) => {
+    var z:Array[String] = new Array[String](0)
+
+    var i = 0
+
+    text.foreachRDD((rdd) => {
       val count = rdd.count()
       if (count > 0) {
-        rdd.repartition(partitionsPerInterval).saveAsTextFile(outputDirectory + "/tweets_" + time.milliseconds.toString)
+        if (i == 0) {
+          z = rdd.take(rdd.count().toInt)
+          i = i+1
+        }
+        else {
+          z = z.union(rdd.take(rdd.count().toInt))
+        }
       }
     })
 
     ssc.start()
     ssc.awaitTerminationOrTimeout(timeoutSecs * 1000)
+
+    val top = sc.parallelize(z).map(word => (word, 1))
+      .reduceByKey(_ + _)
+      .sortBy(_._2, ascending = false)
+      .take(1000)
+
+    sc.parallelize(top).repartition(partitionsPerInterval).saveAsTextFile(outputDirectory + "/top")
   }
 }
