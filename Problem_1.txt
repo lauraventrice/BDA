@@ -1,3 +1,26 @@
+#How to run
+
+cd Exercise1/Problem1
+
+One directory: 
+
+hadoop jar ../jar_run/Problem1.jar HadoopWordCount ../enwiki-articles/AA ../resultCount
+
+hadoop jar ../jar_run/Problem1.jar HadoopWordPairs ../enwiki-articles/AA ../resultPairs
+
+hadoop jar ../jar_run/Problem1.jar HadoopWordStripes ../enwiki-articles/AA ../resultStripes
+
+
+(d):
+
+hadoop jar ../jar_run/Problem1.jar HadoopWordCount ../enwiki-articles/AA ../enwiki-articles/AB ../enwiki-articles/AC ../enwiki-articles/AD ../resultCount
+
+hadoop jar ../jar_run/Problem1.jar HadoopWordPairs ../enwiki-articles/AA ./enwiki-articles/AB ../enwiki-articles/AC ../enwiki-articles/AD ../resultPairs
+
+hadoop jar ../jar_run/Problem1.jar HadoopWordStripes ../enwiki-articles/AA ./enwiki-articles/AB ../enwiki-articles/AC ../enwiki-articles/AD ../resultStripes
+
+
+
 #Write how to run solution problem 1 and results
 
 (c)
@@ -36,7 +59,10 @@ Time computer (m=10):
 	Pairs: (end: 40.24, start: 38.30) 114 seconds
 	Stripes: (end: 12.20, start: 10.13) 127 seconds
 
-//Da fare:
-Provide some brief instructions on how to run your solution to each problem in a file called Problem X.txt, 
-and report also the most important results (such as number of results, runtimes, etc.) of your solutions 
-to that problem within this file. 
+
+#QUESTIONS:
+1) Which observation can you make regarding the runtime of your programs between the steps described
+in (c) and (d)?
+
+2) What is the principal difference between these two scalability tests in terms of “linear scalability”?
+
