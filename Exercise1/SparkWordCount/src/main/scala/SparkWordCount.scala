@@ -38,10 +38,10 @@ object SparkWordCount {
         val topNumbers = countsN.take(1000)
         sc.parallelize(topWords).saveAsTextFile(args(1) + "/topWords")
         sc.parallelize(topNumbers).saveAsTextFile(args(1) + "/topNumbers")
-        //countsW.saveAsTextFile(args(1) + "/wordsCount")
-        //countsN.saveAsTextFile(args(1) + "/numbersCount")
-        countsN.saveAsObjectFile(args(1) + "/numbersCount")
-        countsW.saveAsObjectFile(args(1) + "/wordsCount")
+        countsW.repartition(1).saveAsTextFile(args(1) + "/wordsCount")
+        countsN.repartition(1).saveAsTextFile(args(1) + "/numbersCount")
+        //countsN.repartition(1).saveAsObjectFile(args(1) + "/numbersCount")
+        //countsW.repartition(1).saveAsObjectFile(args(1) + "/wordsCount")
         sc.stop()
 
 
