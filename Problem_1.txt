@@ -26,38 +26,50 @@ hadoop jar ../jar_run/Problem1.jar HadoopWordStripes ../enwiki-articles/AA ./enw
 (c)
 
 Time computer (AA directory):
-	Count: (end: 30.11, start: 29.43) 28 seconds
-	Pairs: (end: 17.57, start: 16.36) 81 seconds
-	Stripes: (end: 43.03, start: 41.41) 82 seconds
+	Count: (end: 27.30, start: 27.07) 23 seconds
+	Pairs: (end: 34.37, start: 33.26) 71 seconds
+	Stripes: (end: 52.06, start: 50.45) 81 seconds
 
 Time computer (AA/AB directories):
-	Count: (end: 38.39, start: 37.48) 51 seconds
-	Pairs: (end: 22.56, start: 20.27) 149 seconds
-	Stripes: (end: 46.58, start: 44.18) 160 seconds
+	Count: (end: 28.48, start: 28.04) 44 seconds
+	Pairs: (end: 39.36, start: 37.19) 137 seconds
+	Stripes: (end: 55.25, start: 52.41) 164 seconds
 	
 Time computer (AA/AB/AC directories):
-	Count: (end: 42.01, start: 40.47) 74 seconds
-	Pairs: (end: 29.03, start: 25.15) 228 seconds
-	Stripes: (end: 52.02, start: 47.57) 245 seconds
+	Count: (end: 30.32, start: 29.24) 68 seconds
+	Pairs: (end: 43.45, start: 40.19) 206 seconds
+	Stripes: (end: 00.27, start: 56.21) 246 seconds
 
 Time computer (AA/AB/AC/AD directories):
-	Count: (end: 44.52, start: 43.12) 100 seconds
-	Pairs: (end: 36.18, start: 31.01) 317 seconds
-	Stripes: (end: 58.51, start: 53.26) 325 seconds
+	Count: (end: 32.41, start: 31.13) 88 seconds
+	Pairs: (end: 49.33, start: 44.57) 276 seconds
+	Stripes: (end: 11.10, start: 01.32) 578 seconds
 
 (d)
 
 Time computer (m=1):
-	Pairs: (end: 11.31, start: 10.59) 32 seconds
-	Stripes: (end: 03.21, start: 02.36) 45 seconds
+	Pairs: (end: 12.49, start: 12.22) 27 seconds
+	Stripes: (end: 14.36, start: 13.52) 44 seconds
+
+Time computer (m=2):
+	Pairs: (end: 15.47, start: 15.07) 40 seconds
+	Stripes: (end: 17.01, start: 16.03) 58 seconds
+
+Time computer (m=3):
+	Pairs: (end: 18.54, start: 18.02) 52 seconds
+	Stripes: (end: 20.22, start: 19.16) 66 seconds
+
+Time computer (m=4):
+	Pairs: (end: 22.00, start: 20.58) 62 seconds
+	Stripes: (end: 26.19, start: 25.00) 79 seconds
 
 Time computer (m=5):
-	Pairs: (end: 17.57, start: 16.36) 81 seconds
-	Stripes: (end: 43.03, start: 41.41) 82 seconds
+	Pairs: (end: 34.37, start: 33.26) 71 seconds
+	Stripes: (end: 52.06, start: 50.45) 81 seconds
 
 Time computer (m=10):
-	Pairs: (end: 40.24, start: 38.30) 114 seconds
-	Stripes: (end: 12.20, start: 10.13) 127 seconds
+	Pairs: (end: 29.04, start: 27.15) 109 seconds
+	Stripes: (end: 31.33, start: 29.27) 126 seconds
 
 
 #QUESTIONS:

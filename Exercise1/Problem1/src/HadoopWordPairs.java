@@ -26,7 +26,7 @@ public class HadoopWordPairs extends Configured implements Tool {
 		private Text pair = new Text();
 
 		private Text current = new Text();
-		int maxDistance = 5; // max distance between tokens
+		int maxDistance = 10; // max distance between tokens
 
 		@Override
 		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
@@ -44,6 +44,7 @@ public class HadoopWordPairs extends Configured implements Tool {
 				mn = rn.matcher(splitLine[i]);
 				if(mn.find()) {
 					current.set(mn.group(0));
+					// check number until maxDistance
 					for(int j = i + 1; j - i <= maxDistance && j < splitLine.length; j++) {
 						mn = rn.matcher(splitLine[j]);
 						if(mn.find()) {
@@ -55,6 +56,7 @@ public class HadoopWordPairs extends Configured implements Tool {
 					mw = rw.matcher(splitLine[i]);
 					if(mw.find()) {
 						current.set(mw.group(0));
+						// check number until maxDistance
 						for(int j = i + 1; j - i <= maxDistance && j < splitLine.length; j++) {
 							mw = rw.matcher(splitLine[j]);
 							if(mw.find()) {
@@ -64,7 +66,6 @@ public class HadoopWordPairs extends Configured implements Tool {
 						}
 					}
 				}
-
 			}
 		}
 	}
@@ -139,10 +140,9 @@ public class HadoopWordPairs extends Configured implements Tool {
 		}
 	}
 
-	public static class MapTask extends
-			Mapper<LongWritable, Text, IntWritable, Text> {
-		public void map(LongWritable key, Text value, Context context)
-				throws IOException, InterruptedException {
+	public static class MapTask extends Mapper<LongWritable, Text, IntWritable, Text> {
+
+		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
 			String line = value.toString();
 			String[] tokens = line.split("\t"); // This is the delimiter between Key and Value
 			int valuePart = Integer.parseInt(tokens[1]);
@@ -150,10 +150,9 @@ public class HadoopWordPairs extends Configured implements Tool {
 		}
 	}
 
-	public static class ReduceTask extends
-			Reducer<IntWritable, Text, Text, IntWritable> {
-		public void reduce(IntWritable key, Iterable<Text> list, Context context)
-				throws IOException, InterruptedException {
+	public static class ReduceTask extends Reducer<IntWritable, Text, Text, IntWritable> {
+
+		public void reduce(IntWritable key, Iterable<Text> list, Context context) throws IOException, InterruptedException {
 
 			for (Text value : list) {
 				context.write(value,key);

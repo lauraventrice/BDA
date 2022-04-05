@@ -123,10 +123,9 @@ public class HadoopWordCount extends Configured implements Tool {
         }
     }
 
-    public static class MapTask extends
-            Mapper<LongWritable, Text, IntWritable, Text> {
-        public void map(LongWritable key, Text value, Context context)
-                throws IOException, InterruptedException {
+    public static class MapTask extends Mapper<LongWritable, Text, IntWritable, Text> {
+
+        public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
             String line = value.toString();
             String[] tokens = line.split("\t"); // This is the delimiter between Key and Value
             int valuePart = Integer.parseInt(tokens[1]);
@@ -134,11 +133,9 @@ public class HadoopWordCount extends Configured implements Tool {
         }
     }
 
-    public static class ReduceTask extends
-            Reducer<IntWritable, Text, Text, IntWritable> {
-        public void reduce(IntWritable key, Iterable<Text> list, Context context)
-                throws IOException, InterruptedException {
+    public static class ReduceTask extends Reducer<IntWritable, Text, Text, IntWritable> {
 
+        public void reduce(IntWritable key, Iterable<Text> list, Context context) throws IOException, InterruptedException {
             for (Text value : list) {
                 context.write(value,key);
             }
@@ -162,16 +159,15 @@ public class HadoopWordCount extends Configured implements Tool {
         job.setOutputFormatClass(TextOutputFormat.class);
         job.setNumReduceTasks(2); // use two different reducers for numbers or words
 
-        FileInputFormat.setInputPaths(job, new Path(args[0]));
+        FileInputFormat.setInputPaths(job, new Path(args[0])); //Take multiple input
         for(int i = 1; i < args.length-1; i++) {
             FileInputFormat.addInputPath(job, new Path(args[i]));
         }
-        FileOutputFormat.setOutputPath(job, new Path("./tmp"));
+        FileOutputFormat.setOutputPath(job, new Path("./tmp")); //Temp folder
 
+        job.waitForCompletion(true); //Wait completion first job
 
-        job.waitForCompletion(true);
-
-        Configuration conf = new Configuration(true);
+        Configuration conf = new Configuration(true); //Configuration for job2
 
         // Create job
         Job job2 = Job.getInstance(conf, "Sorting");
@@ -202,6 +198,8 @@ public class HadoopWordCount extends Configured implements Tool {
         int code = job2.waitForCompletion(true) ? 0 : 1;
 
         FileSystem hdfs = FileSystem.get(conf);
+
+        //Delete the tmp folder
         if (hdfs.exists(new Path("./tmp"))) hdfs.delete(new Path("./tmp"), true);
         return code;
     }
