@@ -31,7 +31,7 @@ object SparkTwitterCollector {
     val tweet = TwitterUtils.createStream(ssc, Some(new OAuthAuthorization(new ConfigurationBuilder().build())))
     //tweet = tweet.filter(_.getLang == "en")
 
-    val regexH = "#([a-z]|[0-9])+"
+    val regexH = "[#]([a-z]|[0-9]|[A-Z])+"
 
     val json = tweet.map(x => x.getText)
 
