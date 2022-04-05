@@ -2,4 +2,15 @@
 
 start: 32.21, end: 34.43 -- 142 seconds
 
-spark-submit --class SparkWordCount SparkWordCount.jar enwiki-articles/AA,enwiki-articles/AB,enwiki-articles/AC,enwiki-articles/AD,enwiki-articles/AE,enwiki-articles/AF,enwiki-articles/AG,enwiki-articles/AH,enwiki-articles/AI,enwiki-articles/AJ,enwiki-articles/AK prova
+#one directory input
+
+cd Exercise1/SparkWordCount
+spark-submit --class SparkWordCount jar_run/SparkWordCount.jar ../enwiki-articles/AA ../resultSparkCountAA
+
+#all directory wiki
+
+cd Exercise1/SparkWordCount
+spark-submit --class SparkWordCount jar_run/SparkWordCount.jar ../enwiki-articles/AA,../enwiki-articles/AB,../enwiki-articles/AC,../enwiki-articles/AD,../enwiki-articles/AE,../enwiki-articles/AF,../enwiki-articles/AG,../enwiki-articles/AH,../enwiki-articles/AI,../enwiki-articles/AJ,../enwiki-articles/AK ../resultSparkCountAll
+
+
+
