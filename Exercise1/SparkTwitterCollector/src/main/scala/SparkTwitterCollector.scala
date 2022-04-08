@@ -33,42 +33,17 @@ object SparkTwitterCollector {
     val tweet = TwitterUtils.createStream(ssc, Some(new OAuthAuthorization(new ConfigurationBuilder().build())))
     val second = tweet.filter(_.getText.contains("#"))
 
-    val regexH = "[#]([a-z]|[0-9]|[A-Z])+"
+    val regexH = "#([a-z]|[0-9]|[A-Z])+"
 
-    val json = tweet.map(x => x.getText)
+    // (b)
+    /*var z:Array[String] = new Array[String](0)
 
-    val tmp = second.map(x => (x.getId, x.getText.split(" ")))
-
-    var z:Array[String] = new Array[String](0)
-
-    var result = List()
-
-    val text = json.flatMap(line => line.split(" "))
+    val text = tweet.map(x => x.getText).flatMap(line => line.split(" "))
       .filter(s => s.matches(regexH))
 
-    var d:Array[(Long, String)] = new Array[(Long, String)](0)
-
-
-
-    var c:Array[(Long,Array[String])] = new Array[(Long, Array[String])](0)
-
-    var g:Array[Long] = Array(1, 2)
-
     var i = 0
-    var x = 0
 
-    tmp.foreachRDD((rdd,time) =>{
-      val count = rdd.count()
-      if (count > 0) {
-          c = c.union(rdd.take(rdd.count().toInt))
-
-        //rdd.repartition(1).saveAsTextFile(outputDirectory + "/tweet2_" + time.milliseconds.toString)
-
-          //rdd.repartition(partitionsPerInterval).saveAsTextFile(outputDirectory + "/tweet_" + time.milliseconds.toString)
-      }
-    })
-
-    /*text.foreachRDD((rdd) => {
+    text.foreachRDD(rdd => {
       val count = rdd.count()
       if (count > 0) {
         if (i == 0) {
@@ -79,23 +54,54 @@ object SparkTwitterCollector {
           z = z.union(rdd.take(rdd.count().toInt))
         }
       }
-    })*/
+    })
 
     ssc.start()
     ssc.awaitTerminationOrTimeout(timeoutSecs * 1000)
 
-    var e:Array[String] = new Array[String](0)
+    val top = sc.parallelize(z).map(word => (word, 1))
+      .reduceByKey(_ + _)
+      .sortBy(_._2, ascending = false)
+      .take(1000)
 
+    sc.parallelize(top).repartition(partitionsPerInterval).saveAsTextFile(outputDirectory + "/top")*/
+
+    // (c)
+    /*var c:Array[(Long,Array[String])] = new Array[(Long, Array[String])](0)
     var l:Array[(Long, String)] = new Array[(Long, String)](0)
+    var str:Array[String] = new Array[String](0)
+    var q = 0
+
+    val tmp = second.map(x => (x.getId, x.getText.split(" ")
+      .filter(s => s.matches(regexH))))
+
+    tmp.foreachRDD(rdd =>{
+      val count = rdd.count()
+      if (count > 0) {
+        c = c.union(rdd.take(rdd.count().toInt))
+      }
+    })
+
+    ssc.start()
+    ssc.awaitTerminationOrTimeout(timeoutSecs * 1000)
 
     for (i <- 1 until c.length){
-      e = e.union(c(i)._2)
-      l = l :+ (c(i)._1, e(i))
+      for(k <- 1 until c(i)._2.length) {
+        l = l.union(Array((c(i)._1, c(i)._2(k))))
+      }
     }
 
-    sc.parallelize(l).repartition(partitionsPerInterval).saveAsTextFile(outputDirectory + "/top")
+    while (q < l.length){
+      var int = 1
+      while (q+int < l.length && l(q)._1 == l(q+int)._1){
+        str = str.union(Array(l(q)._2 + ":" + l(q+int)._2))
+        println(l(q)._2 + ":" + l(q+int)._2)
+        int = int+1
+      }
+      q = q+1
+    }
 
-    /*val top = sc.parallelize(z).map(word => (word, 1))
+    val top = sc.parallelize(str).map(word => (word, 1))
       .reduceByKey(_ + _)
       .sortBy(_._2, ascending = false)
       .take(1000)
