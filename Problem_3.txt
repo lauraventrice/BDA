@@ -1,1 +1,3 @@
 #Write how to run our solution to problem3 and results
+
+spark-submit --class SparkTwitterCollector ./SparkTwitterCollector.jar ./spark-twitter-output 1 60 KVPT7wAENMekaABDEOhiVtuL0 iuNW9UqqWumo0eNj3WmOGoHFmn4owfYwxNtwD44RtMnZ8hL54W 930780178493661184-Wwg5tTtYKyPC6uiahH3rZVQdcuM9BGd PBMIxCAhPNM9qowOIxxvcBf9XyIotELGvPNw8i3zbqn2W
