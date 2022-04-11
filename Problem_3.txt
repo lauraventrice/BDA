@@ -1,3 +1,18 @@
-#Write how to run our solution to problem3 and results
+## How to run
+spark-submit --class SparkTwitterCollector ../jar_run/SparkTwitterCollector.jar ./spark-twitter-output 1 60 KVPT7wAENMekaABDEOhiVtuL0 iuNW9UqqWumo0eNj3WmOGoHFmn4owfYwxNtwD44RtMnZ8hL54W 930780178493661184-Wwg5tTtYKyPC6uiahH3rZVQdcuM9BGd PBMIxCAhPNM9qowOIxxvcBf9XyIotELGvPNw8i3zbqn2W
 
-spark-submit --class SparkTwitterCollector ./SparkTwitterCollector.jar ./spark-twitter-output 1 60 KVPT7wAENMekaABDEOhiVtuL0 iuNW9UqqWumo0eNj3WmOGoHFmn4owfYwxNtwD44RtMnZ8hL54W 930780178493661184-Wwg5tTtYKyPC6uiahH3rZVQdcuM9BGd PBMIxCAhPNM9qowOIxxvcBf9XyIotELGvPNw8i3zbqn2W
+
+## Explanation 
+
+(a)  
+  We started from the input stream in order to obtain text of tweets and we used a regex to distinguish hashtags: 
+  
+  val regexH = "#([a-z]|[0-9]|[A-Z])+"
+  
+(b)  
+  Afterwards for each resulting RDD we created an array with all hashtags and we used map and reduceByKey in order to count the frequency. 
+  At the ending we saved the result of top 1000 as text file. 
+  
+(c) 
+  We started filtering rdds with hashtags, then we mapped each rdd in pairs (id, list_hashtags). Finally we merged all the results of each rdd in one  
+  array and create another array with (id, hashtag) pairs. At the ending we used map and reduceByKey in order to obtain the frequency of the pair.  

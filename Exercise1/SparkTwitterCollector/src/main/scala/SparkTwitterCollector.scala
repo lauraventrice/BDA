@@ -41,18 +41,10 @@ object SparkTwitterCollector {
     val text = tweet.map(x => x.getText).flatMap(line => line.split(" "))
       .filter(s => s.matches(regexH))
 
-    var i = 0
-
     text.foreachRDD(rdd => {
       val count = rdd.count()
       if (count > 0) {
-        if (i == 0) {
-          z = rdd.take(rdd.count().toInt)
-          i = i+1
-        }
-        else {
-          z = z.union(rdd.take(rdd.count().toInt))
-        }
+        z = z.union(rdd.collect())
       }
     })
 
@@ -78,24 +70,25 @@ object SparkTwitterCollector {
     tmp.foreachRDD(rdd =>{
       val count = rdd.count()
       if (count > 0) {
-        c = c.union(rdd.take(rdd.count().toInt))
+        c = c.union(rdd.collect())
       }
     })
 
     ssc.start()
     ssc.awaitTerminationOrTimeout(timeoutSecs * 1000)
 
+    //pairs (id_tweet, hashtag)
     for (i <- 1 until c.length){
       for(k <- 1 until c(i)._2.length) {
         l = l.union(Array((c(i)._1, c(i)._2(k))))
       }
     }
 
+    //pairs (hashtag1, hashtag2) of the same tweet
     while (q < l.length){
       var int = 1
       while (q+int < l.length && l(q)._1 == l(q+int)._1){
         str = str.union(Array(l(q)._2 + ":" + l(q+int)._2))
-        println(l(q)._2 + ":" + l(q+int)._2)
         int = int+1
       }
       q = q+1
