@@ -1,0 +1,131 @@
+#How to run
+
+cd Exercise1/Problem1
+
+One directory: 
+
+hadoop jar ../jar_run/Problem1.jar HadoopWordCount ../enwiki-articles/AA ../resultCount
+
+hadoop jar ../jar_run/Problem1.jar HadoopWordPairs ../enwiki-articles/AA ../resultPairs
+
+hadoop jar ../jar_run/Problem1.jar HadoopWordStripes ../enwiki-articles/AA ../resultStripes
+
+
+(d):
+
+hadoop jar ../jar_run/Problem1.jar HadoopWordCount ../enwiki-articles/AA ../enwiki-articles/AB ../enwiki-articles/AC ../enwiki-articles/AD ../resultCount
+
+hadoop jar ../jar_run/Problem1.jar HadoopWordPairs ../enwiki-articles/AA ./enwiki-articles/AB ../enwiki-articles/AC ../enwiki-articles/AD ../resultPairs
+
+hadoop jar ../jar_run/Problem1.jar HadoopWordStripes ../enwiki-articles/AA ./enwiki-articles/AB ../enwiki-articles/AC ../enwiki-articles/AD ../resultStripes
+
+
+
+#Results
+
+(c)
+
+Time computer (AA directory):
+	Count: (end: 27.30, start: 27.07) 23 seconds
+	Pairs: (end: 34.37, start: 33.26) 71 seconds
+	Stripes: (end: 52.06, start: 50.45) 81 seconds
+
+Time computer (AA/AB directories):
+	Count: (end: 28.48, start: 28.04) 44 seconds
+	Pairs: (end: 39.36, start: 37.19) 137 seconds
+	Stripes: (end: 55.25, start: 52.41) 164 seconds
+	
+Time computer (AA/AB/AC directories):
+	Count: (end: 30.32, start: 29.24) 68 seconds
+	Pairs: (end: 43.45, start: 40.19) 206 seconds
+	Stripes: (end: 00.27, start: 56.21) 246 seconds
+
+Time computer (AA/AB/AC/AD directories):
+	Count: (end: 32.41, start: 31.13) 88 seconds
+	Pairs: (end: 49.33, start: 44.57) 276 seconds
+	Stripes: (end: 11.10, start: 01.32) 578 seconds
+
+(d)
+
+Time computer (m=1):
+	Pairs: (end: 12.49, start: 12.22) 27 seconds
+	Stripes: (end: 14.36, start: 13.52) 44 seconds
+
+Time computer (m=2):
+	Pairs: (end: 15.47, start: 15.07) 40 seconds
+	Stripes: (end: 17.01, start: 16.03) 58 seconds
+
+Time computer (m=3):
+	Pairs: (end: 18.54, start: 18.02) 52 seconds
+	Stripes: (end: 20.22, start: 19.16) 66 seconds
+
+Time computer (m=4):
+	Pairs: (end: 22.00, start: 20.58) 62 seconds
+	Stripes: (end: 26.19, start: 25.00) 79 seconds
+
+Time computer (m=5):
+	Pairs: (end: 34.37, start: 33.26) 71 seconds
+	Stripes: (end: 52.06, start: 50.45) 81 seconds
+
+Time computer (m=10):
+	Pairs: (end: 29.04, start: 27.15) 109 seconds
+	Stripes: (end: 31.33, start: 29.27) 126 seconds
+
+
+#Code Explanations:
+
+(a)
+
+HadoopWordCount, HadoopWordPairs, HadoopWordStripes:
+
+In map function we added two different regex for numbers and words:
+
+String patternNumber = "^(\\d+)((\\.)(\\d+))?$"; 
+String patterWord = "^([a-z]|[\\_]|[\\-]+)([\\-]|[\\_]|[a-z])*$"; 
+
+Then we used java Pattern and Matcher library to analyze the text value; in case we found that the value is not a number, we used the lowercase function on the word.
+
+Reduce function is literally the same as before.
+
+For the division in two different output file we used a partitioner which simply checks if they key is a number or a word. If we found a number then we use the first reduce task, otherwise the second one.
+
+We added "job.setNumReduceTasks(2);" to the code in order to obtain to different reduce task (one for numbers and the other for words).
+
+To obtain the file sorted in descending order we added another job that use a WritableComparator with IntWritable to sort the number of occurrences.
+
+(b)
+
+In order to add a max distance 'm' we used "for loop" in both HadoopWordPairs and HadoopWordStripes; After each value, we check if it is a value of the same group (word or number) and then we add the pair to the context. We also check if "j < splitLine.length" ("k+i<splitLine.length" in HadoopWordStripes, respectively) to be sure that we do not obtain a OutOfBound Error.
+
+(c)
+
+We added in all the source code something like this:
+
+FileInputFormat.setInputPaths(job, new Path(args[0]));
+for(int i = 1; i<args.length-1;i++) {
+	FileInputFormat.addInputPath(job, new Path(args[i]));
+}
+FileOutputFormat.setOutputPath(job, new Path(args[args.length-1]));
+
+To take more directories as input.
+
+The results are in #Results section.
+
+(d)
+
+The results are in #Results section.
+
+
+
+#QUESTIONS:
+1) Which observation can you make regarding the runtime of your programs between the steps described
+in (c) and (d)?
+
+I tempi sono direttamente proporzionali al numero di directory (c) e al numero di parole vicine da cercare (d). In particolare si può notare che c'è una correlazione lineare per l'esperimento c per count e pairs in tutti e 4 i casi, invece per stripes solo per i primi 3. 
+Per quanto riguarda l'esperimento d non c'è una particolare correlazione tra i tempi. 
+
+2) What is the principal difference between these two scalability tests in terms of “linear scalability”?
+
+(c) per count e pairs sembra che sia scalabile linearmente, perchè i tempi con tutte e 4 le cartelle è 4 volte il tempo di esecuzione con una sola cartella. Per quanto riguarda stripes invece i risultati sono molto diversi da 3 a 4 cartelle, il motivo?
+
+(d) dal punto di vista di scalabilità possiamo dire che per quanto riguarda i tempi di esecuzione il numero di vicini non è un fattore su cui si può applicare scalabilità lineare, perchè il numero di vicini che si possono ottenere sono completamente diversi e dipendono molto dal testo. 
