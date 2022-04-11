@@ -1,7 +1,6 @@
-#Write how to run our solution to problem2 and results
+#Problem 2
 
-start: 32.21, end: 34.43 -- 142 seconds
-
+## How to run
 #one directory input
 
 cd Exercise1/SparkWordCount
@@ -11,6 +10,48 @@ spark-submit --class SparkWordCount jar_run/SparkWordCount.jar ../enwiki-article
 
 cd Exercise1/SparkWordCount
 spark-submit --class SparkWordCount jar_run/SparkWordCount.jar ../enwiki-articles/AA,../enwiki-articles/AB,../enwiki-articles/AC,../enwiki-articles/AD,../enwiki-articles/AE,../enwiki-articles/AF,../enwiki-articles/AG,../enwiki-articles/AH,../enwiki-articles/AI,../enwiki-articles/AJ,../enwiki-articles/AK ../resultSparkCountAll
+
+
+## Explanation
+
+(a) SparkWordCount.scala
+
+We used flatMap and split in order to obtain an RDD with tokens, afterwards we applied map to lowercase, and then the filter function to recognize numbers and words with following regex: 
+
+val regexW = "^([a-z]|[\\_]|[\\-]+)(([\\-])|([\\_])|([a-z]))*$"
+val regexN = "\\d+(\\.(\\d+))?"
+
+Map and reduce are the same as before, and afterwards we ordered the result with sortBy function. At the ending in order to split result in two different rdds words and numbers, we used partition method and finally saved the result as text file: 
+
+val (countsN, countsW) = counts.collect().partition(pair => pair._1.matches(regexN))
+sc.parallelize(countsW).saveAsTextFile(args(1) + "/wordsCount")
+sc.parallelize(countsN).saveAsTextFile(args(1) + "/numbersCount")
+
+
+(b) We used the method take in order to obtain the first more used 1000 words/numbers and then we saved the results with: 
+
+sc.parallelize(topWords).saveAsTextFile(args(1) + "/topWords")
+sc.parallelize(topNumbers).saveAsTextFile(args(1) + "/topNumbers")
+
+The results are in #Results section.
+
+(c) We saved the file stopwords as array in this way: 
+
+val stopwords = sc.textFile(filename).collect()
+
+and then we added "neg(stopwords.contains(s))" in the filter function. 
+
+(d) We used the variable created in (c) to create a broadcast variable in the following way: 
+
+val bStopwords = sc.broadcast(stopwords)
+
+and then we added "neg(bStopwords.value.contains(s))"
+
+
+#Result
+start: 32.21, end: 34.43 -- 142 seconds
+
+        
 
 
 

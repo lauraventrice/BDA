@@ -10,9 +10,8 @@ object SparkWordCount {
             System.exit(1)
         }
         val filename = "../Data/stopwords.txt"
-        val sparkConf = new SparkConf().setAppName("SparkWordCount").setSparkHome("SPARK_HOME")
+        val sparkConf = new SparkConf().setAppName("SparkWordCount")
         val sc = new SparkContext(sparkConf)
-        //val sc = new SparkContext("yarn", "SparkWordCount", System.getenv("SPARK_HOME"))
         val textFile = sc.textFile(args(0))
         val stopwords = sc.textFile(filename).collect()
 
@@ -31,17 +30,14 @@ object SparkWordCount {
 
         counts.persist()
 
-        val countsW = counts.filter(s => s._1.matches(regexW))
-        val countsN = counts.filter(s => s._1.matches(regexN))
+        val (countsN, countsW) = counts.collect().partition(pair => pair._1.matches(regexN))
 
         val topWords = countsW.take(1000)
         val topNumbers = countsN.take(1000)
         sc.parallelize(topWords).saveAsTextFile(args(1) + "/topWords")
         sc.parallelize(topNumbers).saveAsTextFile(args(1) + "/topNumbers")
-        countsW.repartition(1).saveAsTextFile(args(1) + "/wordsCount")
-        countsN.repartition(1).saveAsTextFile(args(1) + "/numbersCount")
-        //countsN.repartition(1).saveAsObjectFile(args(1) + "/numbersCount")
-        //countsW.repartition(1).saveAsObjectFile(args(1) + "/wordsCount")
+        sc.parallelize(countsW).saveAsTextFile(args(1) + "/wordsCount")
+        sc.parallelize(countsN).saveAsTextFile(args(1) + "/numbersCount")
         sc.stop()
 
 
