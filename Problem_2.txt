@@ -4,12 +4,12 @@
 #one directory input
 
 cd Exercise1/SparkWordCount
-spark-submit --class SparkWordCount ../jar_run/SparkWordCount.jar ../enwiki-articles/AA ../resultSparkCountAA
+spark-submit --class SparkWordCount ../path/to/SparkWordCount.jar ../enwiki-articles/AA ../resultSparkCountAA
 
 #all directory wiki
 
 cd Exercise1/SparkWordCount
-spark-submit --class SparkWordCount ../jar_run/SparkWordCount.jar ../enwiki-articles/AA,../enwiki-articles/AB,../enwiki-articles/AC,../enwiki-articles/AD,../enwiki-articles/AE,../enwiki-articles/AF,../enwiki-articles/AG,../enwiki-articles/AH,../enwiki-articles/AI,../enwiki-articles/AJ,../enwiki-articles/AK ../resultSparkCountAll
+spark-submit --class SparkWordCount ../path/to/SparkWordCount.jar ../enwiki-articles/AA,../enwiki-articles/AB,../enwiki-articles/AC,../enwiki-articles/AD,../enwiki-articles/AE,../enwiki-articles/AF,../enwiki-articles/AG,../enwiki-articles/AH,../enwiki-articles/AI,../enwiki-articles/AJ,../enwiki-articles/AK ../resultSparkCountAll
 
 
 ## Explanation

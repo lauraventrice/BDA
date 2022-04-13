@@ -4,20 +4,20 @@ cd Exercise1/Problem1
 
 One directory: 
 
-hadoop jar ../jar_run/Problem1.jar HadoopWordCount ../enwiki-articles/AA ../resultCount
+hadoop jar ../path/to/Problem1.jar HadoopWordCount ../enwiki-articles/AA ../resultCount
 
-hadoop jar ../jar_run/Problem1.jar HadoopWordPairs ../enwiki-articles/AA ../resultPairs
+hadoop jar ../path/to/Problem1.jar HadoopWordPairs ../enwiki-articles/AA ../resultPairs
 
-hadoop jar ../jar_run/Problem1.jar HadoopWordStripes ../enwiki-articles/AA ../resultStripes
+hadoop jar ../path/to/Problem1.jar HadoopWordStripes ../enwiki-articles/AA ../resultStripes
 
 
 (d):
 
-hadoop jar ../jar_run/Problem1.jar HadoopWordCount ../enwiki-articles/AA ../enwiki-articles/AB ../enwiki-articles/AC ../enwiki-articles/AD ../resultCount
+hadoop jar ../path/to/Problem1.jar HadoopWordCount ../enwiki-articles/AA ../enwiki-articles/AB ../enwiki-articles/AC ../enwiki-articles/AD ../resultCount
 
-hadoop jar ../jar_run/Problem1.jar HadoopWordPairs ../enwiki-articles/AA ./enwiki-articles/AB ../enwiki-articles/AC ../enwiki-articles/AD ../resultPairs
+hadoop jar ../path/to/Problem1.jar HadoopWordPairs ../enwiki-articles/AA ./enwiki-articles/AB ../enwiki-articles/AC ../enwiki-articles/AD ../resultPairs
 
-hadoop jar ../jar_run/Problem1.jar HadoopWordStripes ../enwiki-articles/AA ./enwiki-articles/AB ../enwiki-articles/AC ../enwiki-articles/AD ../resultStripes
+hadoop jar ../path/to/Problem1.jar HadoopWordStripes ../enwiki-articles/AA ./enwiki-articles/AB ../enwiki-articles/AC ../enwiki-articles/AD ../resultStripes
 
 
 

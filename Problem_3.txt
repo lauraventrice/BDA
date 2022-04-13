@@ -1,5 +1,5 @@
 ## How to run
-spark-submit --class SparkTwitterCollector ../jar_run/SparkTwitterCollector.jar ./spark-twitter-output 1 60 KVPT7wAENMekaABDEOhiVtuL0 iuNW9UqqWumo0eNj3WmOGoHFmn4owfYwxNtwD44RtMnZ8hL54W 930780178493661184-Wwg5tTtYKyPC6uiahH3rZVQdcuM9BGd PBMIxCAhPNM9qowOIxxvcBf9XyIotELGvPNw8i3zbqn2W
+spark-submit --class SparkTwitterCollector ../path/to/SparkTwitterCollector.jar ./spark-twitter-output 1 60 KVPT7wAENMekaABDEOhiVtuL0 iuNW9UqqWumo0eNj3WmOGoHFmn4owfYwxNtwD44RtMnZ8hL54W 930780178493661184-Wwg5tTtYKyPC6uiahH3rZVQdcuM9BGd PBMIxCAhPNM9qowOIxxvcBf9XyIotELGvPNw8i3zbqn2W
 
 REMEMBER: remove the comment of the exercise's part that you want to try.
 
