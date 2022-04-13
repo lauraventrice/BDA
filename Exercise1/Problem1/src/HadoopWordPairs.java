@@ -26,7 +26,7 @@ public class HadoopWordPairs extends Configured implements Tool {
 		private Text pair = new Text();
 
 		private Text current = new Text();
-		int maxDistance = 10; // max distance between tokens
+		int maxDistance = 5; // max distance between tokens
 
 		@Override
 		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {

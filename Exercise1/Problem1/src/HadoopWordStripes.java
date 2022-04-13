@@ -23,7 +23,7 @@ public class HadoopWordStripes extends Configured implements Tool {
 	public static class Map extends Mapper<LongWritable, Text, Text, MapWritable> {
 		private final static IntWritable one = new IntWritable(1);
 
-		int maxDistance = 10; // max distance between tokens
+		int maxDistance = 5; // max distance between tokens
 
 		@Override
 		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {

@@ -4,12 +4,12 @@
 #one directory input
 
 cd Exercise1/SparkWordCount
-spark-submit --class SparkWordCount jar_run/SparkWordCount.jar ../enwiki-articles/AA ../resultSparkCountAA
+spark-submit --class SparkWordCount ../jar_run/SparkWordCount.jar ../enwiki-articles/AA ../resultSparkCountAA
 
 #all directory wiki
 
 cd Exercise1/SparkWordCount
-spark-submit --class SparkWordCount jar_run/SparkWordCount.jar ../enwiki-articles/AA,../enwiki-articles/AB,../enwiki-articles/AC,../enwiki-articles/AD,../enwiki-articles/AE,../enwiki-articles/AF,../enwiki-articles/AG,../enwiki-articles/AH,../enwiki-articles/AI,../enwiki-articles/AJ,../enwiki-articles/AK ../resultSparkCountAll
+spark-submit --class SparkWordCount ../jar_run/SparkWordCount.jar ../enwiki-articles/AA,../enwiki-articles/AB,../enwiki-articles/AC,../enwiki-articles/AD,../enwiki-articles/AE,../enwiki-articles/AF,../enwiki-articles/AG,../enwiki-articles/AH,../enwiki-articles/AI,../enwiki-articles/AJ,../enwiki-articles/AK ../resultSparkCountAll
 
 
 ## Explanation
@@ -35,11 +35,15 @@ sc.parallelize(topNumbers).saveAsTextFile(args(1) + "/topNumbers")
 
 The results are in #Results section.
 
+We can say, for sure, that mapreduce used with scala is absolutely faster than the one used with java.
+
 (c) We saved the file stopwords as array in this way: 
 
 val stopwords = sc.textFile(filename).collect()
 
 and then we added "neg(stopwords.contains(s))" in the filter function. 
+
+start: 05.39, end: 06.02 -- 23 seconds
 
 (d) We used the variable created in (c) to create a broadcast variable in the following way: 
 
@@ -47,6 +51,9 @@ val bStopwords = sc.broadcast(stopwords)
 
 and then we added "neg(bStopwords.value.contains(s))"
 
+start: 09.52, end: 10.16 -- 24 seconds
+
+We can say that the runtime of this approch is similar to the previous one.
 
 #Result
 start: 32.21, end: 34.43 -- 142 seconds

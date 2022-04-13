@@ -121,11 +121,10 @@ The results are in #Results section.
 1) Which observation can you make regarding the runtime of your programs between the steps described
 in (c) and (d)?
 
-I tempi sono direttamente proporzionali al numero di directory (c) e al numero di parole vicine da cercare (d). In particolare si può notare che c'è una correlazione lineare per l'esperimento c per count e pairs in tutti e 4 i casi, invece per stripes solo per i primi 3. 
-Per quanto riguarda l'esperimento d non c'è una particolare correlazione tra i tempi. 
+Times are directly proportional to the number of folders (c) and to the number of near words to find (d). In particular, it is easy to see that there is a linear correlation (experiment (c)) for HadoopWordCount and HadoopWordPairs in all four cases, instead for HadoopWordStripes only for the first three.
+As far as experiment (d) is concerned, there is no particular correlation between the times.
 
 2) What is the principal difference between these two scalability tests in terms of “linear scalability”?
 
-(c) per count e pairs sembra che sia scalabile linearmente, perchè i tempi con tutte e 4 le cartelle è 4 volte il tempo di esecuzione con una sola cartella. Per quanto riguarda stripes invece i risultati sono molto diversi da 3 a 4 cartelle, il motivo?
-
-(d) dal punto di vista di scalabilità possiamo dire che per quanto riguarda i tempi di esecuzione il numero di vicini non è un fattore su cui si può applicare scalabilità lineare, perchè il numero di vicini che si possono ottenere sono completamente diversi e dipendono molto dal testo. 
+(c) for count and pairs it seems to be linearly scalable, because the time with all 4 directories is 4 times the execution time with one directory. As for stripes, on the other hand, the results are very different from 3 to 4 folders. We can suppose several motivations for this, like the overhead due to the number of words or that stripes does not have linearly scalability, but that it has a greater complexity.
+(d) from the point of view of scalability, we can say that as regards the execution times the number of neighbors is not a factor on which linear scalability can be applied, because the number of neighbors that can be obtained are completely different and depend a lot from the text.
