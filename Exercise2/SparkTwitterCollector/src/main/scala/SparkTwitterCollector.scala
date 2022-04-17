@@ -1,8 +1,13 @@
-import org.apache.spark.ml.classification.LogisticRegression
+import org.apache.spark.ml.classification.{DecisionTreeClassifier, LogisticRegression, RandomForestClassifier}
+import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
 import org.apache.spark.ml.feature.{HashingTF, IndexToString, OneHotEncoder, StandardScaler, StringIndexer, Tokenizer, VectorAssembler}
 import org.apache.spark.ml.{Pipeline, PipelineModel}
 import org.apache.spark.sql.Row
 import org.apache.spark.ml.linalg.Vector
+import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
+import org.apache.spark.mllib.tree
+import org.apache.spark.mllib.tree._
+import org.apache.spark.mllib.tree.model._
 
 
 object SparkTwitterCollector {
@@ -65,20 +70,42 @@ object SparkTwitterCollector {
     //Feature scaling helps in decreasing the convergence time
     val scaler = new StandardScaler().setInputCol("features").setOutputCol("scaledFeatures")
 
-    //Regression
-    val lr = new LogisticRegression()
-      .setMaxIter(10)
-      .setRegParam(0.001)
+    //Classifier
+    val cl =  new DecisionTreeClassifier()
       .setLabelCol("label")
       .setFeaturesCol("scaledFeatures")
 
     //Pipeline
-    val stages = Array(labelIndexer, stringIndexer, oneHotEncoder, vector, scaler, lr)
+    val stages = Array(labelIndexer, stringIndexer, oneHotEncoder, vector, scaler, cl)
     val pipeline = new Pipeline().setStages(stages)
 
     val model = pipeline.fit(trainData)
 
     model.transform(testData)
+      .select("HeartDisease","probability", "prediction")
+      .collect()
+      .foreach { case Row(id: String, prob: Vector, prediction: Double) =>
+        println(s"($id) --> prob=$prob, prediction=$prediction")
+      }
+
+    //(ii)
+    val paramGrid = new ParamGridBuilder()
+      .addGrid(cl.maxDepth, Array(5, 10, 15))
+      .addGrid(cl.impurity, Array("entropy", "gini"))
+      .addGrid(cl.maxBins, Array(20, 50, 100))
+      .build()
+
+    //Cross-validation
+    val cv = new CrossValidator()
+      .setEstimator(pipeline)
+      .setEvaluator(new BinaryClassificationEvaluator)
+      .setEstimatorParamMaps(paramGrid)
+      .setNumFolds(2)  // Use 5-fold cross-validation //TODO è a 2 per renderlo più veloce ma deve essere 5
+      .setParallelism(2)
+
+    val cvModel = cv.fit(trainData)
+
+    cvModel.transform(testData)
       .select("HeartDisease","probability", "prediction")
       .collect()
       .foreach { case Row(id: String, prob: Vector, prediction: Double) =>
