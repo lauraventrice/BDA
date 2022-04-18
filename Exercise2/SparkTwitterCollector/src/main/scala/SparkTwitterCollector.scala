@@ -143,6 +143,31 @@ object SparkTwitterCollector {
       println(s"Threshold: $t, Recall: $r")
     }
 
-    //TODO manca l'accuracy ma non capisco se si possa ottenere col BinaryClassification
+    val pipelinePredictionDf = cvModel.transform(testData)
+    val accuracy = evaluator.evaluate(pipelinePredictionDf)
+    println(accuracy)
+    //TODO non sono sicuro sia l'accuracy ma internet la spaccia in questo modo
+
+    //(c)
+    val rf = new RandomForestClassifier()
+      .setLabelCol("label")
+      .setFeaturesCol("scaledFeatures")
+      .setNumTrees(5) //TODO dice di controllare anche 10 e 20 con l'apprendimento in automatico ma non ho ben capito che voglia
+      .setFeatureSubsetStrategy("auto")
+
+    val stagesForest = Array(labelIndexer, stringIndexer, oneHotEncoder, vector, scaler, rf)
+    val pipelineForest = new Pipeline().setStages(stagesForest)
+
+    val modelForest = pipelineForest.fit(trainData)
+
+    modelForest.transform(testData)
+      .select("HeartDisease","probability", "prediction")
+      .collect()
+      .foreach { case Row(id: String, prob: Vector, prediction: Double) =>
+        println(s"($id) --> prob=$prob, prediction=$prediction")
+      }
+
+    //TODO qui vuole che rifacciamo la crossvalidation con la foresta random? e che poi la confrontiamo con l'albero che
+    //abbiamo visto a lezione?
   }
 }
