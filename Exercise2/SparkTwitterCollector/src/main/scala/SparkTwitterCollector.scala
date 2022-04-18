@@ -2,9 +2,11 @@ import org.apache.spark.ml.classification.{DecisionTreeClassifier, LogisticRegre
 import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
 import org.apache.spark.ml.feature.{HashingTF, IndexToString, OneHotEncoder, StandardScaler, StringIndexer, Tokenizer, VectorAssembler}
 import org.apache.spark.ml.{Pipeline, PipelineModel}
-import org.apache.spark.sql.Row
+import org.apache.spark.sql.{Dataset, Row}
 import org.apache.spark.ml.linalg.Vector
-import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
+import org.apache.spark.ml.tuning.{CrossValidator, CrossValidatorModel, ParamGridBuilder}
+import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
+import org.apache.spark.mllib.linalg.Vectors
 import org.apache.spark.mllib.tree
 import org.apache.spark.mllib.tree._
 import org.apache.spark.mllib.tree.model._
@@ -81,35 +83,48 @@ object SparkTwitterCollector {
 
     val model = pipeline.fit(trainData)
 
-    model.transform(testData)
+    /*model.transform(testData)
       .select("HeartDisease","probability", "prediction")
       .collect()
       .foreach { case Row(id: String, prob: Vector, prediction: Double) =>
         println(s"($id) --> prob=$prob, prediction=$prediction")
-      }
+      }*/
 
-    //(ii)
+    //(ii) (iii)
     val paramGrid = new ParamGridBuilder()
-      .addGrid(cl.maxDepth, Array(5, 10, 15))
+      .addGrid(cl.maxDepth, Array(5)) //TODO add 10,15
       .addGrid(cl.impurity, Array("entropy", "gini"))
-      .addGrid(cl.maxBins, Array(20, 50, 100))
+      .addGrid(cl.maxBins, Array(20)) //TODO add 50,100
       .build()
+
+    //TODO credo che questo sia
+    //measure the average accuracy over the two possible labels of heart disease for each of the cross-validation and hyper-parameter iterations.
+    //Però non sono sicuro, sopratutto perchè io uso areaUnderROC ma non so se sia quello che vogliono
+    // AH si questo è per il (iii)
+    val evaluator = new BinaryClassificationEvaluator()
+      .setLabelCol("label")
+      .setRawPredictionCol("rawPrediction")
+      .setMetricName("areaUnderROC")
 
     //Cross-validation
     val cv = new CrossValidator()
       .setEstimator(pipeline)
-      .setEvaluator(new BinaryClassificationEvaluator)
+      .setEvaluator(evaluator) //Si può ache mettere semplicemente new BinaryClassificationEvaluator
       .setEstimatorParamMaps(paramGrid)
       .setNumFolds(2)  // Use 5-fold cross-validation //TODO è a 2 per renderlo più veloce ma deve essere 5
       .setParallelism(2)
 
     val cvModel = cv.fit(trainData)
 
-    cvModel.transform(testData)
+    //TODO si fa così?
+    cvModel.save("./tree") //Saving Model
+    /*cvModel.transform(testData)
       .select("HeartDisease","probability", "prediction")
       .collect()
       .foreach { case Row(id: String, prob: Vector, prediction: Double) =>
         println(s"($id) --> prob=$prob, prediction=$prediction")
-      }
+      }*/
+
+    //(iv)
   }
 }
