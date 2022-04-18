@@ -1,6 +1,6 @@
 import org.apache.spark.ml.classification.{DecisionTreeClassifier, LogisticRegression, RandomForestClassifier}
 import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
-import org.apache.spark.ml.feature.{HashingTF, IndexToString, OneHotEncoder, StandardScaler, StringIndexer, Tokenizer, VectorAssembler}
+import org.apache.spark.ml.feature.{HashingTF, IndexToString, LabeledPoint, OneHotEncoder, StandardScaler, StringIndexer, Tokenizer, VectorAssembler}
 import org.apache.spark.ml.{Pipeline, PipelineModel}
 import org.apache.spark.sql.{Dataset, Row}
 import org.apache.spark.ml.linalg.Vector
@@ -14,7 +14,6 @@ import org.apache.spark.mllib.tree.model._
 
 object SparkTwitterCollector {
   def main(args: Array[String]){
-    //Non sono sicuro che sia necessario, ma altrimenti non so come richiamare spark
     val spark = org.apache.spark.sql.SparkSession.builder
       .master("local")
       .appName("Spark CSV Reader")
@@ -126,5 +125,24 @@ object SparkTwitterCollector {
       }*/
 
     //(iv)
+
+    val prediction = cvModel.transform(testData).select("prediction").rdd.map(row => row.getDouble(0))
+    val label = cvModel.transform(testData).select("label").rdd.map(row => row.getDouble(0))
+
+    val predictionAndLabels = prediction.zip(label)
+
+    val metrics = new BinaryClassificationMetrics(predictionAndLabels)
+
+    val precision = metrics.precisionByThreshold //Credo che il treshold sia la label ma non ho certezze, ciao Laura!
+    precision.foreach { case (t, p) =>
+      println(s"Threshold: $t, Precision: $p")
+    }
+
+    val recall = metrics.recallByThreshold
+    recall.foreach { case (t, r) =>
+      println(s"Threshold: $t, Recall: $r")
+    }
+
+    //TODO manca l'accuracy ma non capisco se si possa ottenere col BinaryClassification
   }
 }
