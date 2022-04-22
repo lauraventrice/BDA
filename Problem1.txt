@@ -1,5 +1,5 @@
 #Command
-spark-submit --class DEVO CAMBIARE IL NOME DEL FILE IN PROBLEM1
+spark-submit --class Problem1 Problem1.jar
 
 #Explanation Work
 

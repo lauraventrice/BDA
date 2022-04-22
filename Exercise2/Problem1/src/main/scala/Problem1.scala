@@ -14,9 +14,8 @@ import org.apache.spark.rdd._
 import org.apache.spark.mllib.evaluation._
 import org.apache.spark.mllib.linalg
 
-
-object SparkTwitterCollector {
-  def main(args: Array[String]){
+object Problem1 {
+  def main(args: Array[String]): Unit = {
     //Declare sparkSession
     val spark = org.apache.spark.sql.SparkSession.builder
       .master("local")
@@ -46,7 +45,7 @@ object SparkTwitterCollector {
 
     //Create two array for input and output
     index_columns.foreach(elem =>
-      {index_columns_OHE = index_columns_OHE.union(Array(elem + "OHE"))
+    {index_columns_OHE = index_columns_OHE.union(Array(elem + "OHE"))
       index_columns_index = index_columns_index.union(Array(elem + "_index"))}
     )
 
@@ -198,7 +197,7 @@ object SparkTwitterCollector {
     val data2 = dataFrame.rdd.map(row => LabeledPoint(
       row.getAs[Double]("label"),
       org.apache.spark.mllib.linalg.Vectors.fromML(row.getAs("features"))
-      )
+    )
     )
 
     def getMetrics(model: DecisionTreeModel, data: RDD[LabeledPoint]):
@@ -233,6 +232,5 @@ object SparkTwitterCollector {
     val testAccuracy = getMetrics(model2, testData2).accuracy
 
     println("OldAccuracy: " + testAccuracy)
-
   }
 }

@@ -4,7 +4,7 @@ ThisBuild / scalaVersion := "2.12.15"
 
 lazy val root = (project in file("."))
   .settings(
-    name := "SparkTwitterCollector"
+    name := "Problem1"
   )
 
 libraryDependencies += "org.apache.spark" %% "spark-core" % "3.2.1"
