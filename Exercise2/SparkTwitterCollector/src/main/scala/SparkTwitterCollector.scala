@@ -17,8 +17,6 @@ import org.apache.spark.mllib.linalg
 
 object SparkTwitterCollector {
   def main(args: Array[String]){
-    val sparkConf = new SparkConf().setAppName("SparkDecisionTree")
-    val sc = new SparkContext(sparkConf)
     //Declare sparkSession
     val spark = org.apache.spark.sql.SparkSession.builder
       .master("local")

@@ -1,0 +1,29 @@
+#Command
+spark-submit --class DEVO CAMBIARE IL NOME DEL FILE IN PROBLEM1
+
+#Explanation Work
+
+(a)
+We declared the sparkSession for loading the csv file into a dataframe.
+
+(b)
+(i)
+We splitted the dataframe in two different array with the 90% of the data in the first one and the 10% in the second one:
+val Array(trainData, testData) = dataFrame.randomSplit(Array(0.9, 0.1))
+
+We used the StringIndexer for converting the "HeartDisease" label in an integer label and OneHotEncoder for converting also the features.
+We merge together the features in an vector with VectorAssembler.
+We created the Decision Tree and we passed the whole set of those stages to a Pipeline.
+(ii)
+After the creation of a ParamGridBuilder with the params, we created the CrossValidator with 5-folds. 
+(iii)
+We calculeted the average accuracy for each of the cross-validation and hyper-parameter iterations with avgMetrics.
+Eventually, we saved the tree.
+(iv)
+We obtained the predictionAndLabels for computing precision, recall and accuracy. The last one computed as:
+(TP+TN)/Number of example
+
+(c)
+We repeted the cross validation with a randomForest.
+
+At the end, we recreated the model in the original script (starting from a dataframe, so we converted it in RDD[LabelPoint]).
