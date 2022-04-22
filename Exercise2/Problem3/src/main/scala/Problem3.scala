@@ -1,3 +1,4 @@
+import breeze.signal.OptWindowFunction.User
 import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd._
@@ -71,7 +72,7 @@ object Problem3 {
 
     def predictMostPopular(user: Int, numArtists: Int) = {
       val topArtists = artistsTotalCount.take(numArtists)
-      topArtists.map{case (artist, rating) => Rating(someUser, artist, rating)}
+      topArtists.map{case (artist, rating) => Rating(user, artist, rating)}
     }
 
     var AUC1 = 0.0
@@ -107,5 +108,19 @@ object Problem3 {
       val metrics2 = new BinaryClassificationMetrics(sc.parallelize(predictionsAndLabels2))
       AUC2 += metrics2.areaUnderROC
     }
+
+    //(b)
+
+    val evaluations = for(rank <- Array(10, 25); //TODO add 50
+                          lambda <- Array(1.0, 0.01); //TODO add 0.001
+                          alpha <- Array(1.0)) //TODO add 10.0, 100.0
+    yield {
+      val model = ALS.trainImplicit(trainData, rank, 10, lambda, alpha)
+      //val auc =
+      //((rank, lambda, alpha), auc)
+    }
+    //evaluations.sortBy(_._2).reverse.foreach(println)
+
+    //(c)
   }
 }
