@@ -5,7 +5,7 @@ import org.apache.spark.ml.feature.{StandardScaler, VectorAssembler}
 import org.apache.spark.mllib.tree.RandomForest
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd._
-import org.apache.spark.sql.{DataFrame, Row}
+import org.apache.spark.sql.{DataFrame, Dataset, Row}
 import org.apache.spark.sql.types.{DoubleType, IntegerType, StringType, StructField, StructType}
 
 import scala.reflect.io.File
@@ -48,7 +48,7 @@ object Problem2 {
 
     var df : DataFrame = spark.emptyDataFrame
     val schemaString = "year month day hour latitude longitude elevationDimension directionAngle speedRate ceilingHeightDimension distanceDimension dewPointTemperature airTemperature"
-
+    var schema = new StructType
 
     if (new java.io.File(filePath).exists){ //Check if we saved the file yet
       df = spark.read.option("header",value = true)
@@ -65,7 +65,7 @@ object Problem2 {
       val fields = schemaString.split(" ")
         .map(fieldName => if (intField contains fieldName) StructField(fieldName, dataType = IntegerType, nullable = true)
         else StructField(fieldName, dataType = DoubleType, nullable = true))
-      val schema = StructType(fields)
+      schema = StructType(fields)
 
       //Create DataFrame
       df = spark.createDataFrame(parsedNOAA, schema)
@@ -107,5 +107,29 @@ object Problem2 {
       .rdd.map(row => (row.getDouble(0), row.getDouble(0)))
     
     println(predictionAndLabels)
+
+
+    //val rddRowData = sc.parallelize(rowData)
+    val rawTestData2 = sc.textFile("./testData2") //Documento creato ad hoc
+    val rddRowData = parseNOAA(rawTestData2)
+
+    val anotherTestData = spark.createDataFrame(rddRowData, schema)
+
+    val predictionAndLabelsAnother = model.transform(anotherTestData).select("airTemperature", "prediction")
+      .rdd.map(row => (row.getDouble(0), row.getDouble(0)))
+
+    println(predictionAndLabelsAnother)
+
+
+    //(c)
+
+    val testMSE = predictionAndLabels.map{ case (v, p) => math.pow(v - p, 2) }.mean()
+    println(s"Test Mean Squared Error = $testMSE")
+
+
+    //(d)
+
+    
+
   }
 }
