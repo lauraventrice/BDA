@@ -1,6 +1,6 @@
 import org.apache.spark.ml.classification.{DecisionTreeClassifier, LogisticRegression, RandomForestClassifier}
 import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
-import org.apache.spark.ml.feature.{HashingTF, IndexToString, LabeledPoint, OneHotEncoder, StandardScaler, StringIndexer, Tokenizer, VectorAssembler}
+import org.apache.spark.ml.feature.{HashingTF, IndexToString, LabeledPoint, OneHotEncoder, PCA, StandardScaler, StringIndexer, Tokenizer, VectorAssembler}
 import org.apache.spark.ml.{Pipeline, PipelineModel}
 import org.apache.spark.sql.{Dataset, Row}
 import org.apache.spark.ml.linalg.Vector
@@ -152,22 +152,42 @@ object SparkTwitterCollector {
     val rf = new RandomForestClassifier()
       .setLabelCol("label")
       .setFeaturesCol("scaledFeatures")
-      .setNumTrees(5) //TODO dice di controllare anche 10 e 20 con l'apprendimento in automatico ma non ho ben capito che voglia
       .setFeatureSubsetStrategy("auto")
 
     val stagesForest = Array(labelIndexer, stringIndexer, oneHotEncoder, vector, scaler, rf)
     val pipelineForest = new Pipeline().setStages(stagesForest)
 
-    val modelForest = pipelineForest.fit(trainData)
+    /*val modelForest = pipelineForest.fit(trainData)
 
     modelForest.transform(testData)
       .select("HeartDisease","probability", "prediction")
       .collect()
       .foreach { case Row(id: String, prob: Vector, prediction: Double) =>
         println(s"($id) --> prob=$prob, prediction=$prediction")
+      }*/
+
+    val paramForest = new ParamGridBuilder()
+      .addGrid(rf.impurity, Array("entropy", "gini"))
+      .addGrid(rf.numTrees, Array(5, 10, 20)) //TODO add 10, 20
+      .addGrid(rf.maxDepth, Array(5, 10, 15)) //TODO add 10,15
+      .addGrid(rf.maxBins, Array(20, 50, 100)) //TODO add 50,100
+      .build()
+
+    val cvForest = new CrossValidator()
+      .setEstimator(pipelineForest)
+      .setEvaluator(evaluator)
+      .setEstimatorParamMaps(paramForest)
+      .setNumFolds(2)  // Use 5-fold cross-validation //TODO è a 2 per renderlo più veloce ma deve essere 5
+      .setParallelism(2)
+
+    val cvModelForest = cvForest.fit(trainData)
+
+    cvModelForest.transform(testData)
+      .select("HeartDisease","probability", "prediction")
+      .collect()
+      .foreach { case Row(id: String, prob: Vector, prediction: Double) =>
+        println(s"($id) --> prob=$prob, prediction=$prediction")
       }
 
-    //TODO qui vuole che rifacciamo la crossvalidation con la foresta random? e che poi la confrontiamo con l'albero che
-    //abbiamo visto a lezione?
   }
 }
