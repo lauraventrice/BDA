@@ -1,24 +1,34 @@
+import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.ml.classification.{DecisionTreeClassifier, RandomForestClassifier}
 import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
 import org.apache.spark.ml.feature.{OneHotEncoder, StandardScaler, StringIndexer, VectorAssembler}
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
 import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
+import org.apache.spark.mllib.linalg._
+import org.apache.spark.mllib.regression._
+import org.apache.spark.mllib.linalg.Vectors
+import org.apache.spark.mllib.tree._
+import org.apache.spark.mllib.tree.model._
+import org.apache.spark.rdd._
+import org.apache.spark.mllib.evaluation._
+import org.apache.spark.mllib.linalg
 
 
 object SparkTwitterCollector {
   def main(args: Array[String]){
+    val sparkConf = new SparkConf().setAppName("SparkDecisionTree")
+    val sc = new SparkContext(sparkConf)
     //Declare sparkSession
     val spark = org.apache.spark.sql.SparkSession.builder
       .master("local")
-      .appName("Spark CSV Reader")
       .getOrCreate;
 
     //Csv's path
     val csvPath = "heart_2020_cleaned.csv"
 
     //Load csv into a DataFrame (a)
-    val dataFrame = spark.read.option("inferSchema", value = true)
+    var dataFrame = spark.read.option("inferSchema", value = true)
       .option("header", value = true)
       .csv(csvPath)
 
@@ -179,6 +189,52 @@ object SparkTwitterCollector {
     //Model's accuracy
     val accuracyForest = predictionAndLabels.filter(pl => pl._1.equals(pl._2)).count().toDouble / testData.count().toDouble
     println("Accuracy: " + accuracyForest)
+
+    //Professor's Models
+    dataFrame = labelIndexer.transform(dataFrame)
+    dataFrame = stringIndexer.fit(dataFrame).transform(dataFrame)
+    dataFrame = oneHotEncoder.fit(dataFrame).transform(dataFrame)
+    dataFrame = vector.transform(dataFrame)
+    dataFrame = scaler.fit(dataFrame).transform(dataFrame)
+
+    val data2 = dataFrame.rdd.map(row => LabeledPoint(
+      row.getAs[Double]("label"),
+      org.apache.spark.mllib.linalg.Vectors.fromML(row.getAs("features"))
+      )
+    )
+
+    def getMetrics(model: DecisionTreeModel, data: RDD[LabeledPoint]):
+    MulticlassMetrics = {
+      val predictionsAndLabels = data.map(example =>
+        (model.predict(example.features), example.label)
+      )
+      new MulticlassMetrics(predictionsAndLabels)
+    }
+
+    val Array(trainData2, valData2, testData2) =
+      data2.randomSplit(Array(0.8, 0.1, 0.1))
+
+    val evaluations2 =
+      for (impurity <- Array("gini", "entropy");
+           depth <- Array(20, 30);
+           bins <- Array(200, 300))
+      yield {
+        val model2 = DecisionTree.trainClassifier(
+          trainData2, 2, Map(3 -> 2, 4 -> 2), //TODO non so cosa scrivere in questa Map
+          impurity, depth, bins)
+        val trainAccuracy = getMetrics(model2, trainData2).accuracy
+        val valAccuracy = getMetrics(model2, valData2).accuracy
+        ((impurity, depth, bins), (trainAccuracy, valAccuracy)) }
+
+    evaluations2.sortBy(_._2).reverse.foreach(println)
+
+    val model2 = DecisionTree.trainClassifier(
+      trainData2, 2, Map(3 -> 2, 4 -> 2), //TODO stesso di sopra
+      "gini", 30, 300)
+
+    val testAccuracy = getMetrics(model2, testData2).accuracy
+
+    println("OldAccuracy: " + testAccuracy)
 
   }
 }
