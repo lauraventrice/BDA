@@ -1,8 +1,11 @@
 import org.apache.spark
+import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.classification.RandomForestClassifier
+import org.apache.spark.ml.feature.{StandardScaler, VectorAssembler}
+import org.apache.spark.mllib.tree.RandomForest
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd._
-import org.apache.spark.sql.Row
-
+import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.types.{DoubleType, IntegerType, StringType, StructField, StructType}
 
 import scala.reflect.io.File
@@ -43,8 +46,12 @@ object Problem2 {
       .appName("Spark CSV Reader")
       .getOrCreate
 
+    var df : DataFrame = spark.emptyDataFrame
+    val schemaString = "year month day hour latitude longitude elevationDimension directionAngle speedRate ceilingHeightDimension distanceDimension dewPointTemperature airTemperature"
+
+
     if (new java.io.File(filePath).exists){ //Check if we saved the file yet
-      val df = spark.read.option("header",value = true)
+      df = spark.read.option("header",value = true)
         .csv(filePath)
 
       df.cache()
@@ -52,7 +59,6 @@ object Problem2 {
       val rawNOAA = sc.textFile("./NOAA-065900/065900*")
       val parsedNOAA = parseNOAA(rawNOAA)
 
-      val schemaString = "year month day hour latitude longitude elevationDimension directionAngle speedRate ceilingHeightDimension distanceDimension dewPointTemperature airTemperature"
 
       // Generate the schema based on the string of schema
       val intField = "year month day hour elevationDimension directionAngle ceilingHeightDimension distanceDimension"
@@ -62,11 +68,44 @@ object Problem2 {
       val schema = StructType(fields)
 
       //Create DataFrame
-      val df = spark.createDataFrame(parsedNOAA, schema)
+      df = spark.createDataFrame(parsedNOAA, schema)
 
       df.cache()
 
       df.repartition(1).write.option("header",value = true).csv(filePath)
     }
+    //(b)
+    val trainData= df.filter("year <= 2021")
+    val testData = df.filter("year > 2021")
+
+    trainData.cache()
+    testData.cache()
+
+    val columns = schemaString.split(" ")
+    val features = columns.filterNot(column => column.equals("airTemperature"))
+
+    val vector = new VectorAssembler()
+      .setInputCols(features)
+      .setOutputCol("features")
+
+    val scaler = new StandardScaler()
+      .setInputCol("features")
+      .setOutputCol("scaledFeatures")
+
+    val forest = new RandomForestClassifier()
+      .setNumTrees(10)
+      .setLabelCol("airTemperature")
+      .setFeaturesCol("scaledFeatures")
+      .setFeatureSubsetStrategy("auto")
+
+    val stagesForest = Array(vector, scaler, forest)
+    val pipelineForest = new Pipeline().setStages(stagesForest)
+
+    val model = pipelineForest.fit(trainData)
+
+    val predictionAndLabels = model.transform(testData).select("airTemperature", "prediction")
+      .rdd.map(row => (row.getDouble(0), row.getDouble(0)))
+    
+    println(predictionAndLabels)
   }
 }
