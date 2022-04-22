@@ -126,10 +126,7 @@ object SparkTwitterCollector {
 
     //(iv)
 
-    val prediction = cvModel.transform(testData).select("prediction").rdd.map(row => row.getDouble(0))
-    val label = cvModel.transform(testData).select("label").rdd.map(row => row.getDouble(0))
-
-    val predictionAndLabels = prediction.zip(label)
+    val predictionAndLabels = cvModel.transform(testData).select("label", "prediction").rdd.map(row => (row.getDouble(0), row.getDouble(1)))
 
     val metrics = new BinaryClassificationMetrics(predictionAndLabels)
 
@@ -144,8 +141,10 @@ object SparkTwitterCollector {
     }
 
     val pipelinePredictionDf = cvModel.transform(testData)
-    val accuracy = evaluator.evaluate(pipelinePredictionDf)
-    println(accuracy)
+    val accuracyEv = evaluator.evaluate(pipelinePredictionDf)
+    val accuracyComputed = predictionAndLabels.filter(pl => pl._1.equals(pl._2)).count().toDouble / testData.count().toDouble
+    println(accuracyComputed + "AAAA")
+    println(accuracyEv + "BBBB")
     //TODO non sono sicuro sia l'accuracy ma internet la spaccia in questo modo
 
     //(c)
@@ -155,7 +154,7 @@ object SparkTwitterCollector {
       .setFeatureSubsetStrategy("auto")
 
     val stagesForest = Array(labelIndexer, stringIndexer, oneHotEncoder, vector, scaler, rf)
-    val pipelineForest = new Pipeline().setStages(stagesForest)
+    val pipelineForest = new Pipeline().setStages(stagesForest)*/
 
     /*val modelForest = pipelineForest.fit(trainData)
 
@@ -166,11 +165,11 @@ object SparkTwitterCollector {
         println(s"($id) --> prob=$prob, prediction=$prediction")
       }*/
 
-    val paramForest = new ParamGridBuilder()
+   /* val paramForest = new ParamGridBuilder()
       .addGrid(rf.impurity, Array("entropy", "gini"))
-      .addGrid(rf.numTrees, Array(5, 10, 20)) //TODO add 10, 20
-      .addGrid(rf.maxDepth, Array(5, 10, 15)) //TODO add 10,15
-      .addGrid(rf.maxBins, Array(20, 50, 100)) //TODO add 50,100
+      .addGrid(rf.numTrees, Array(5)) //TODO add 10, 20
+      .addGrid(rf.maxDepth, Array(5)) //TODO add 10,15
+      .addGrid(rf.maxBins, Array(20)) //TODO add 50,100
       .build()
 
     val cvForest = new CrossValidator()
@@ -178,16 +177,16 @@ object SparkTwitterCollector {
       .setEvaluator(evaluator)
       .setEstimatorParamMaps(paramForest)
       .setNumFolds(2)  // Use 5-fold cross-validation //TODO è a 2 per renderlo più veloce ma deve essere 5
-      .setParallelism(2)
+      .setParallelism(2)*/
 
-    val cvModelForest = cvForest.fit(trainData)
+    /*val cvModelForest = cvForest.fit(trainData)
 
     cvModelForest.transform(testData)
       .select("HeartDisease","probability", "prediction")
       .collect()
       .foreach { case Row(id: String, prob: Vector, prediction: Double) =>
         println(s"($id) --> prob=$prob, prediction=$prediction")
-      }
+      }*/
 
   }
 }
