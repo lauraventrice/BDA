@@ -1,25 +1,22 @@
-import org.apache.spark.ml.classification.{DecisionTreeClassifier, LogisticRegression, RandomForestClassifier}
+import org.apache.spark.ml.classification.{DecisionTreeClassifier, RandomForestClassifier}
 import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
-import org.apache.spark.ml.feature.{HashingTF, IndexToString, LabeledPoint, OneHotEncoder, PCA, StandardScaler, StringIndexer, Tokenizer, VectorAssembler}
-import org.apache.spark.ml.{Pipeline, PipelineModel}
-import org.apache.spark.sql.{Dataset, Row}
-import org.apache.spark.ml.linalg.Vector
-import org.apache.spark.ml.tuning.{CrossValidator, CrossValidatorModel, ParamGridBuilder}
+import org.apache.spark.ml.feature.{OneHotEncoder, StandardScaler, StringIndexer, VectorAssembler}
+import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
 import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
-import org.apache.spark.mllib.linalg.Vectors
-import org.apache.spark.mllib.tree
-import org.apache.spark.mllib.tree._
-import org.apache.spark.mllib.tree.model._
 
 
 object SparkTwitterCollector {
   def main(args: Array[String]){
+    //Declare sparkSession
     val spark = org.apache.spark.sql.SparkSession.builder
       .master("local")
       .appName("Spark CSV Reader")
       .getOrCreate;
 
-    val csvPath = "heart_2020_cleaned.csv" //Csv's path
+    //Csv's path
+    val csvPath = "heart_2020_cleaned.csv"
+
     //Load csv into a DataFrame (a)
     val dataFrame = spark.read.option("inferSchema", value = true)
       .option("header", value = true)
@@ -82,6 +79,7 @@ object SparkTwitterCollector {
 
     val model = pipeline.fit(trainData)
 
+    //See results
     /*model.transform(testData)
       .select("HeartDisease","probability", "prediction")
       .collect()
@@ -96,27 +94,22 @@ object SparkTwitterCollector {
       .addGrid(cl.maxBins, Array(20)) //TODO add 50,100
       .build()
 
-    //TODO credo che questo sia
-    //measure the average accuracy over the two possible labels of heart disease for each of the cross-validation and hyper-parameter iterations.
-    //Però non sono sicuro, sopratutto perchè io uso areaUnderROC ma non so se sia quello che vogliono
-    // AH si questo è per il (iii)
-    val evaluator = new BinaryClassificationEvaluator()
-      .setLabelCol("label")
-      .setRawPredictionCol("rawPrediction")
-      .setMetricName("areaUnderROC")
-
     //Cross-validation
     val cv = new CrossValidator()
       .setEstimator(pipeline)
-      .setEvaluator(evaluator) //Si può ache mettere semplicemente new BinaryClassificationEvaluator
+      .setEvaluator(new BinaryClassificationEvaluator()) //Si può ache mettere semplicemente new BinaryClassificationEvaluator
       .setEstimatorParamMaps(paramGrid)
       .setNumFolds(2)  // Use 5-fold cross-validation //TODO è a 2 per renderlo più veloce ma deve essere 5
       .setParallelism(2)
 
     val cvModel = cv.fit(trainData)
 
-    //TODO si fa così?
+    //Model's Average Metrics
+    val avgMetrics = cvModel.avgMetrics //TODO io non credo sia l'accuracy però molto simile a quello che vogliamo penso
+
     cvModel.save("./tree") //Saving Model
+
+    //See results
     /*cvModel.transform(testData)
       .select("HeartDisease","probability", "prediction")
       .collect()
@@ -126,26 +119,26 @@ object SparkTwitterCollector {
 
     //(iv)
 
+    //Prediction and True Label
     val predictionAndLabels = cvModel.transform(testData).select("label", "prediction").rdd.map(row => (row.getDouble(0), row.getDouble(1)))
 
     val metrics = new BinaryClassificationMetrics(predictionAndLabels)
 
-    val precision = metrics.precisionByThreshold //Credo che il treshold sia la label ma non ho certezze, ciao Laura!
+    //Precision for each label
+    val precision = metrics.precisionByThreshold
     precision.foreach { case (t, p) =>
       println(s"Threshold: $t, Precision: $p")
     }
 
+    //Recall for each label
     val recall = metrics.recallByThreshold
     recall.foreach { case (t, r) =>
       println(s"Threshold: $t, Recall: $r")
     }
 
-    val pipelinePredictionDf = cvModel.transform(testData)
-    val accuracyEv = evaluator.evaluate(pipelinePredictionDf)
+    //Model's accuracy
     val accuracyComputed = predictionAndLabels.filter(pl => pl._1.equals(pl._2)).count().toDouble / testData.count().toDouble
-    println(accuracyComputed + "AAAA")
-    println(accuracyEv + "BBBB")
-    //TODO non sono sicuro sia l'accuracy ma internet la spaccia in questo modo
+    println("Accuracy: " + accuracyComputed)
 
     //(c)
     val rf = new RandomForestClassifier()
@@ -154,18 +147,9 @@ object SparkTwitterCollector {
       .setFeatureSubsetStrategy("auto")
 
     val stagesForest = Array(labelIndexer, stringIndexer, oneHotEncoder, vector, scaler, rf)
-    val pipelineForest = new Pipeline().setStages(stagesForest)*/
+    val pipelineForest = new Pipeline().setStages(stagesForest)
 
-    /*val modelForest = pipelineForest.fit(trainData)
-
-    modelForest.transform(testData)
-      .select("HeartDisease","probability", "prediction")
-      .collect()
-      .foreach { case Row(id: String, prob: Vector, prediction: Double) =>
-        println(s"($id) --> prob=$prob, prediction=$prediction")
-      }*/
-
-   /* val paramForest = new ParamGridBuilder()
+    val paramForest = new ParamGridBuilder()
       .addGrid(rf.impurity, Array("entropy", "gini"))
       .addGrid(rf.numTrees, Array(5)) //TODO add 10, 20
       .addGrid(rf.maxDepth, Array(5)) //TODO add 10,15
@@ -174,19 +158,27 @@ object SparkTwitterCollector {
 
     val cvForest = new CrossValidator()
       .setEstimator(pipelineForest)
-      .setEvaluator(evaluator)
+      .setEvaluator(new BinaryClassificationEvaluator())
       .setEstimatorParamMaps(paramForest)
       .setNumFolds(2)  // Use 5-fold cross-validation //TODO è a 2 per renderlo più veloce ma deve essere 5
-      .setParallelism(2)*/
+      .setParallelism(2)
 
-    /*val cvModelForest = cvForest.fit(trainData)
+    val cvModelForest = cvForest.fit(trainData)
 
-    cvModelForest.transform(testData)
+    //See results
+    /*cvModelForest.transform(testData)
       .select("HeartDisease","probability", "prediction")
       .collect()
       .foreach { case Row(id: String, prob: Vector, prediction: Double) =>
         println(s"($id) --> prob=$prob, prediction=$prediction")
       }*/
+
+    val predictionAndLabelsForest = cvModelForest.transform(testData).select("label", "prediction").rdd.map(row => (row.getDouble(0), row.getDouble(1)))
+    val metricsForest = new BinaryClassificationMetrics(predictionAndLabelsForest)
+
+    //Model's accuracy
+    val accuracyForest = predictionAndLabels.filter(pl => pl._1.equals(pl._2)).count().toDouble / testData.count().toDouble
+    println("Accuracy: " + accuracyForest)
 
   }
 }
