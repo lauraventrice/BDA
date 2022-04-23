@@ -1,13 +1,16 @@
 import org.apache.spark
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification.RandomForestClassifier
-import org.apache.spark.ml.feature.{StandardScaler, VectorAssembler}
+import org.apache.spark.ml.feature.{QuantileDiscretizer, StandardScaler, VectorAssembler}
+import org.apache.spark.mllib.linalg.Vectors
+import org.apache.spark.mllib.stat.Statistics
 import org.apache.spark.mllib.tree.RandomForest
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd._
 import org.apache.spark.sql.{DataFrame, Dataset, Row}
 import org.apache.spark.sql.types.{DoubleType, IntegerType, StringType, StructField, StructType}
 
+import javax.management.ValueExp
 import scala.reflect.io.File
 
 
@@ -49,6 +52,8 @@ object Problem2 {
     var df : DataFrame = spark.emptyDataFrame
     val schemaString = "year month day hour latitude longitude elevationDimension directionAngle speedRate ceilingHeightDimension distanceDimension dewPointTemperature airTemperature"
     var schema = new StructType
+    // Generate the schema based on the string of schema
+    val intField = "year month day hour elevationDimension directionAngle ceilingHeightDimension distanceDimension"
 
     if (new java.io.File(filePath).exists){ //Check if we saved the file yet
       df = spark.read.option("header",value = true)
@@ -59,9 +64,6 @@ object Problem2 {
       val rawNOAA = sc.textFile("./NOAA-065900/065900*")
       val parsedNOAA = parseNOAA(rawNOAA)
 
-
-      // Generate the schema based on the string of schema
-      val intField = "year month day hour elevationDimension directionAngle ceilingHeightDimension distanceDimension"
       val fields = schemaString.split(" ")
         .map(fieldName => if (intField contains fieldName) StructField(fieldName, dataType = IntegerType, nullable = true)
         else StructField(fieldName, dataType = DoubleType, nullable = true))
@@ -88,9 +90,11 @@ object Problem2 {
       .setInputCols(features)
       .setOutputCol("features")
 
-    val scaler = new StandardScaler()
+    val standardScalar = new StandardScaler()
       .setInputCol("features")
       .setOutputCol("scaledFeatures")
+      .setWithStd(true)
+      .setWithMean(true)
 
     val forest = new RandomForestClassifier()
       .setNumTrees(10)
@@ -98,12 +102,13 @@ object Problem2 {
       .setFeaturesCol("scaledFeatures")
       .setFeatureSubsetStrategy("auto")
 
-    val stagesForest = Array(vector, scaler, forest)
+    val stagesForest = Array(vector, standardScalar, forest)
     val pipelineForest = new Pipeline().setStages(stagesForest)
 
     val model = pipelineForest.fit(trainData)
 
-    val predictionAndLabels = model.transform(testData).select("airTemperature", "prediction")
+    val predictionAndLabels = model.transform(testData)
+      .select("airTemperature", "prediction")
       .rdd.map(row => (row.getDouble(0), row.getDouble(0)))
     
     println(predictionAndLabels)
@@ -115,7 +120,9 @@ object Problem2 {
 
     val anotherTestData = spark.createDataFrame(rddRowData, schema)
 
-    val predictionAndLabelsAnother = model.transform(anotherTestData).select("airTemperature", "prediction")
+    val predictionAndLabelsAnother = model
+      .transform(anotherTestData)
+      .select("airTemperature", "prediction")
       .rdd.map(row => (row.getDouble(0), row.getDouble(0)))
 
     println(predictionAndLabelsAnother)
@@ -129,7 +136,28 @@ object Problem2 {
 
     //(d)
 
-    
+    //val fields = columns.map(column => if (intField contains column) df.select(column).rdd.map(row => row.getInt(0))
+      //else df.select(column).rdd.map(row => row.getDouble(0)))
+
+    // Since standardScalar is a model we use the fit and pass DF as argument in order to normalize data
+    println("NON NORMALIZZATO: ", df)
+
+    /*val discretizer = new QuantileDiscretizer()
+      .setInputCol("features")
+      .setOutputCol("featuresDiscretized")
+
+    val standardScalarFit = standardScalar.fit(df.select("airTemperature", "features"))
+    val dfNormalized = standardScalarFit.transform(df.select("airTemperatures", "features"))
+    println("NORMALIZZATO ", dfNormalized)*/
+
+    val seriesX: RDD[Double] = df.select("airTemperature").rdd.map(row => row.getDouble(0))
+
+    val fields = features.map(feature => df.select(feature).rdd.map(row => row.getDouble(0)))
+
+    fields.map(column => Statistics.corr(seriesX, column, "spearman"))
+
+
+    println(s"Correlation is: ${fields.mkString("Array(", ", ", ")")}")
 
   }
 }
