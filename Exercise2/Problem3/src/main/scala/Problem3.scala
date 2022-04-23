@@ -42,7 +42,7 @@ object Problem3 {
       .collect()
 
     val trainData100 = trainData.filter(elem => counts contains elem.user)
-    println(trainData100.count())
+    //println(trainData100.count())
 
     //(ii)
     val Array(trainData90, testData10) = trainData100.randomSplit(Array(0.9, 0.1)) //TODO sono sicuro che la divisione sia come la vuole il prof (?)
@@ -75,6 +75,31 @@ object Problem3 {
       topArtists.map{case (artist, rating) => Rating(user, artist, rating)}
     }
 
+    //TODO ho scritto questo metodo per richiamarlo poi dopo
+    def getAUC(someUser: Int, actualArtists: Set[Int], model: MatrixFactorizationModel) = {
+        val recommendations = model.recommendProducts(someUser, 25)
+        val predictionsAndLabels = recommendations.map {
+          case Rating(user, artist, rating) =>
+            if (actualArtists.contains(artist)) {
+              (rating, 1.0)
+            } else {
+              (rating, 0.0)
+            }
+        }
+
+        val metrics = new BinaryClassificationMetrics(sc.parallelize(predictionsAndLabels))
+        metrics.areaUnderROC
+    }
+
+    def getTotalAUC(model: MatrixFactorizationModel) = {
+      var AUC = 0.0
+      for(someUser <- someUsers){
+        val actualArtists = actualArtistsForUser(someUser)
+        AUC += getAUC(someUser, actualArtists, model)
+      }
+      AUC
+    }
+
     var AUC1 = 0.0
     var AUC2 = 0.0
 
@@ -82,18 +107,7 @@ object Problem3 {
 
       val actualArtists = actualArtistsForUser(someUser)
 
-      val recommendations1 = model.recommendProducts(someUser, 25)
-      val predictionsAndLabels1 = recommendations1.map {
-        case Rating(user, artist, rating) =>
-          if (actualArtists.contains(artist)) {
-            (rating, 1.0)
-          } else {
-            (rating, 0.0)
-          }
-      }
-
-      val metrics1 = new BinaryClassificationMetrics(sc.parallelize(predictionsAndLabels1))
-      AUC1 += metrics1.areaUnderROC
+      AUC1 += getAUC(someUser, actualArtists, model)
 
       val recommendations2 = predictMostPopular(someUser, 25)
       val predictionsAndLabels2 = recommendations2.map {
@@ -105,7 +119,7 @@ object Problem3 {
           }
       }
 
-      val metrics2 = new BinaryClassificationMetrics(sc.parallelize(predictionsAndLabels2))
+      val metrics2 = new BinaryClassificationMetrics(sc.parallelize(predictionsAndLabels2)),
       AUC2 += metrics2.areaUnderROC
     }
 
@@ -115,12 +129,31 @@ object Problem3 {
                           lambda <- Array(1.0, 0.01); //TODO add 0.001
                           alpha <- Array(1.0)) //TODO add 10.0, 100.0
     yield {
-      val model = ALS.trainImplicit(trainData, rank, 10, lambda, alpha)
-      //val auc =
-      //((rank, lambda, alpha), auc)
+      val modelCrossValidation = ALS.trainImplicit(trainData, rank, 5, lambda, alpha)//TODO credo che quel 5 iterazioni intenda il k del cross validation, di conseguenza potrebbeero essere le fold?
+      val auc = getTotalAUC(modelCrossValidation)
+      ((rank, lambda, alpha), auc)
     }
-    //evaluations.sortBy(_._2).reverse.foreach(println)
+    evaluations.sortBy(_._2).reverse.foreach(println)
 
     //(c)
+    //New user information
+    /*val newUserList = List(Rating(1609994, 7007868, 113), Rating(1609994, 10191561, 53), Rating(1609994, 10308181, 23),
+      Rating(1609994, 10588243, 215), Rating(1609994, 9951079, 134), Rating(1609994, 10465886, 312),
+      Rating(1609994, 1331600, 124), Rating(1609994, 10236358, 76), Rating(1609994, 2008710, 54),
+      Rating(1609994, 9910593, 97))
+    val newUser = sc.parallelize(newUserList)
+
+    //New trainData
+    val trainDataModified = trainData.union(newUser)
+    //Model with best choice
+    //TODO trova le best choice
+    // val model = ALS.trainImplicit(trainData90, 10, 5, 0.01, 1.0)*/
+
+/*
+    val actualArtistsNewUser = actualArtistsForUser(1609994)
+
+    val recommendationsNewUser = modelNewUser.recommendProducts(1609994, 25)
+    */
+    //TODO stampa i raccomandati per l'utente e commenta se sono carini o meno
   }
 }

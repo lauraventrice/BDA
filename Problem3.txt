@@ -1,0 +1,33 @@
+#Command:
+spark-submit --class Problem3 Problem3.jar  
+
+#Explanation Work
+
+(a)
+(i)
+We created an Array of Integer with the number of the users who listened to at least 100 distinct artists.
+Then, we filtered the original trainData to obtain a new RDD.
+
+(ii)
+We splitted the trainData100 in two different RDD, rispectively the 90% and 10% of the data, and we train a first reccomender model as the one that we saw at lesson.
+    val model = ALS.trainImplicit(trainData90, 10, 5, 0.01, 1.0)
+
+(iii)
+After computing the top 25 most recommended artists for each of 100 random users, we used the function on the original script in order to compute the AUC.
+
+(b)
+
+We created a triple for loop for searching the best hyper-parameters and we calculated the AUC, precision, recall and accuracy.
+
+(c)
+
+We created a new user:
+val newUserList = List(Rating(1609994, 7007868, 113), Rating(1609994, 10191561, 53), Rating(1609994, 10308181, 23),
+      Rating(1609994, 10588243, 215), Rating(1609994, 9951079, 134), Rating(1609994, 10465886, 312),
+      Rating(1609994, 1331600, 124), Rating(1609994, 10236358, 76), Rating(1609994, 2008710, 54),
+      Rating(1609994, 9910593, 97))
+
+The number was not in the original list and we put in the rating one of us' some of favourite artists.
+
+COMMENTA LA SCELTA MIGLIORE E I RISULTATI
+PER IL PUNTO B MANCA IL REPORT DEL RUNTIME PER LA CROSS VALIDATION 
