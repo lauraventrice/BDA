@@ -1,16 +1,21 @@
 import org.apache.spark
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification.RandomForestClassifier
-import org.apache.spark.ml.feature.{QuantileDiscretizer, StandardScaler, VectorAssembler}
+import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
+import org.apache.spark.ml.feature.{MinMaxScaler, QuantileDiscretizer, StandardScaler, VectorAssembler}
+import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
 import org.apache.spark.mllib.linalg.Vectors
 import org.apache.spark.mllib.stat.Statistics
 import org.apache.spark.mllib.tree.RandomForest
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd._
+import org.apache.spark.sql.functions.{asc, desc}
 import org.apache.spark.sql.{DataFrame, Dataset, Row}
 import org.apache.spark.sql.types.{DoubleType, IntegerType, StringType, StructField, StructType}
+import spire.compat.ordering
 
 import javax.management.ValueExp
+import scala.math.Ordering.Implicits.infixOrderingOps
 import scala.reflect.io.File
 
 
@@ -77,6 +82,9 @@ object Problem2 {
       df.repartition(1).write.option("header",value = true).csv(filePath)
     }
     //(b)
+    val minTemp = df.orderBy(asc("airTemperature")).first().getDouble(0)
+    val maxTemp = df.orderBy(desc("airTemperature")).first().getDouble(0)
+
     val trainData= df.filter("year <= 2021")
     val testData = df.filter("year > 2021")
 
@@ -93,22 +101,46 @@ object Problem2 {
     val standardScalar = new StandardScaler()
       .setInputCol("features")
       .setOutputCol("scaledFeatures")
-      .setWithStd(true)
-      .setWithMean(true)
+
+    val scalarLabel = new MinMaxScaler()
+      .setInputCol("airTemperature")
+      .setOutputCol("label")
+      .setMax(50)
 
     val forest = new RandomForestClassifier()
       .setNumTrees(10)
-      .setLabelCol("airTemperature")
+      .setLabelCol("label")
       .setFeaturesCol("scaledFeatures")
       .setFeatureSubsetStrategy("auto")
 
-    val stagesForest = Array(vector, standardScalar, forest)
+    val scalarLabelTrue = new MinMaxScaler()
+      .setInputCol("prediction")
+      .setOutputCol("predictionTrue")
+      .setMin(minTemp)
+      .setMax(maxTemp)
+
+    val stagesForest = Array(vector, standardScalar, scalarLabel, forest, scalarLabelTrue)
     val pipelineForest = new Pipeline().setStages(stagesForest)
+
+    val paramForest = new ParamGridBuilder()
+      .addGrid(forest.impurity, Array("entropy", "gini"))
+      .addGrid(forest.maxDepth, Array(5)) //TODO add 10,15
+      .addGrid(forest.maxBins, Array(20)) //TODO add 50,100
+      .build()
+
+    val cvForest = new CrossValidator()
+      .setEstimator(pipelineForest)
+      .setEvaluator(new BinaryClassificationEvaluator())
+      .setEstimatorParamMaps(paramForest)
+      .setNumFolds(2)  // Use 5-fold cross-validation //TODO è a 2 per renderlo più veloce ma deve essere 5
+      .setParallelism(2)
+
+    val cvModelForest = cvForest.fit(trainData)
 
     val model = pipelineForest.fit(trainData)
 
-    val predictionAndLabels = model.transform(testData)
-      .select("airTemperature", "prediction")
+    val predictionAndLabels = cvModelForest.transform(testData)
+      .select("airTemperature", "predictionTrue")
       .rdd.map(row => (row.getDouble(0), row.getDouble(0)))
     
     println(predictionAndLabels)
@@ -120,12 +152,13 @@ object Problem2 {
 
     val anotherTestData = spark.createDataFrame(rddRowData, schema)
 
-    val predictionAndLabelsAnother = model
+    val predictionAndLabelsAnother = cvModelForest
       .transform(anotherTestData)
-      .select("airTemperature", "prediction")
+      .select("airTemperature", "predictionTrue")
       .rdd.map(row => (row.getDouble(0), row.getDouble(0)))
 
     println(predictionAndLabelsAnother)
+
 
 
     //(c)
@@ -136,26 +169,14 @@ object Problem2 {
 
     //(d)
 
-    //val fields = columns.map(column => if (intField contains column) df.select(column).rdd.map(row => row.getInt(0))
-      //else df.select(column).rdd.map(row => row.getDouble(0)))
-
-    // Since standardScalar is a model we use the fit and pass DF as argument in order to normalize data
-    println("NON NORMALIZZATO: ", df)
-
-    /*val discretizer = new QuantileDiscretizer()
-      .setInputCol("features")
-      .setOutputCol("featuresDiscretized")
-
-    val standardScalarFit = standardScalar.fit(df.select("airTemperature", "features"))
-    val dfNormalized = standardScalarFit.transform(df.select("airTemperatures", "features"))
-    println("NORMALIZZATO ", dfNormalized)*/
-
     val seriesX: RDD[Double] = df.select("airTemperature").rdd.map(row => row.getDouble(0))
+
+    println(seriesX)
 
     val fields = features.map(feature => df.select(feature).rdd.map(row => row.getDouble(0)))
 
+    print(fields)
     fields.map(column => Statistics.corr(seriesX, column, "spearman"))
-
 
     println(s"Correlation is: ${fields.mkString("Array(", ", ", ")")}")
 
