@@ -17,13 +17,28 @@ We created the Decision Tree and we passed the whole set of those stages to a Pi
 (ii)
 After the creation of a ParamGridBuilder with the params, we created the CrossValidator with 5-folds. 
 (iii)
-We calculeted the average accuracy for each of the cross-validation and hyper-parameter iterations with avgMetrics.
+We calculeted the average metric for each of the cross-validation and hyper-parameter iterations with avgMetrics.
 Eventually, we saved the tree.
 (iv)
 We obtained the predictionAndLabels for computing precision, recall and accuracy. The last one computed as:
 (TP+TN)/Number of example
 
+This part (b) needs less than 30 minutes to finish.
+The best tree is the one with maxBins = 20, impurity = "gini" and maxDepth = 5.
+
 (c)
 We repeted the cross validation with a randomForest.
 
+This part (c) needs about an hour and half.
+The best forest is the one with maxBins = 100, impurity = "gini", numTrees = 20 and maxDepth = 15.
+
 At the end, we recreated the model in the original script (starting from a dataframe, so we converted it in RDD[LabelPoint]).
+For the original model the best tree is impurity = "gini", maxDepth = 30 and maxBins = 300.
+This last part, from the original script, needs only 20 minutes to finish.
+
+Now, we can compare the three parts:
+- The tree from the original script needs 20 minutes to finish. The parameters are impurity = "gini", maxDepth = 30 and maxBins = 300. The final accuracy is 0.866504854368932.
+- The tree from the first CrossValidation needs less than 30 minutes to finish. The parameters are maxBins = 20, impurity = "gini" and maxDepth = 5. The final accuracy is 0.9140502600739487.
+- The forest needs about one hour and half. The parameters are maxBins = 100, impurity = "gini", numTrees = 20 and maxDepth = 15. The final accuracy is Accuracy: 0.9134996721106704.
+
+We can say that, in this situation, those last two parts have a better accuracy rather than the one from the original script, but they need more time.
