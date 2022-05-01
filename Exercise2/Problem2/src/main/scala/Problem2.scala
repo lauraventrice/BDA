@@ -13,7 +13,7 @@ import org.apache.spark.sql.functions.{asc, desc}
 import org.apache.spark.sql.{DataFrame, Dataset, Row}
 import org.apache.spark.sql.types.{DoubleType, IntegerType, StringType, StructField, StructType}
 import spire.compat.ordering
-
+import org.apache.spark.ml.linalg.VectorUDT
 import javax.management.ValueExp
 import scala.math.Ordering.Implicits.infixOrderingOps
 import scala.reflect.io.File
@@ -37,9 +37,9 @@ object Problem2 {
         val ceilingHeightDimension = line.substring(70, 75).toInt
         val distanceDimension = line.substring(78, 84).toInt
         val dewPointTemperature = line.substring(93, 98).toDouble / 10
-        val airTemperature = line.substring(87, 92).toDouble / 10
+        val label = ((line.substring(87, 92).toDouble / 10)+ 30).toInt 
 
-        Row(year, month, day, hour, latitude, longitude, elevationDimension, directionAngle, speedRate, ceilingHeightDimension, distanceDimension, dewPointTemperature, airTemperature)
+        Row(year, month, day, hour, latitude, longitude, elevationDimension, directionAngle, speedRate, ceilingHeightDimension, distanceDimension, dewPointTemperature, label)
       }
   }
 
@@ -55,13 +55,19 @@ object Problem2 {
       .getOrCreate
 
     var df : DataFrame = spark.emptyDataFrame
-    val schemaString = "year month day hour latitude longitude elevationDimension directionAngle speedRate ceilingHeightDimension distanceDimension dewPointTemperature airTemperature"
+    val schemaString = "year month day hour latitude longitude elevationDimension directionAngle speedRate ceilingHeightDimension distanceDimension dewPointTemperature label"
     var schema = new StructType
     // Generate the schema based on the string of schema
-    val intField = "year month day hour elevationDimension directionAngle ceilingHeightDimension distanceDimension"
+    val intField = "year month day hour elevationDimension directionAngle ceilingHeightDimension distanceDimension label"
 
     if (new java.io.File(filePath).exists){ //Check if we saved the file yet
-      df = spark.read.option("header",value = true)
+
+      val fields = schemaString.split(" ")
+        .map(fieldName => if (intField contains fieldName) StructField(fieldName, dataType = IntegerType, nullable = true)
+         else StructField(fieldName, dataType = DoubleType, nullable = true))
+
+      schema = StructType(fields)
+      df = spark.read.option("header",value = true).schema(schema)
         .csv(filePath)
 
       df.cache()
@@ -71,7 +77,7 @@ object Problem2 {
 
       val fields = schemaString.split(" ")
         .map(fieldName => if (intField contains fieldName) StructField(fieldName, dataType = IntegerType, nullable = true)
-        else StructField(fieldName, dataType = DoubleType, nullable = true))
+         else StructField(fieldName, dataType = DoubleType, nullable = true))
       schema = StructType(fields)
 
       //Create DataFrame
@@ -82,8 +88,9 @@ object Problem2 {
       df.repartition(1).write.option("header",value = true).csv(filePath)
     }
     //(b)
-    val minTemp = df.orderBy(asc("airTemperature")).first().getDouble(0)
-    val maxTemp = df.orderBy(desc("airTemperature")).first().getDouble(0)
+   
+    val minTemp = df.select("label").orderBy(asc("label")).first().getInt(0)
+    val maxTemp = df.select("label").orderBy(desc("label")).first().getInt(0)
 
     val trainData= df.filter("year <= 2021")
     val testData = df.filter("year > 2021")
@@ -92,7 +99,7 @@ object Problem2 {
     testData.cache()
 
     val columns = schemaString.split(" ")
-    val features = columns.filterNot(column => column.equals("airTemperature"))
+    val features = columns.filterNot(column => column.equals("label"))
 
     val vector = new VectorAssembler()
       .setInputCols(features)
@@ -102,24 +109,32 @@ object Problem2 {
       .setInputCol("features")
       .setOutputCol("scaledFeatures")
 
-    val scalarLabel = new MinMaxScaler()
+      /*
+    val normalizeLabel = new MinMaxScaler()
       .setInputCol("airTemperature")
       .setOutputCol("label")
-      .setMax(50)
-
+      .setMin(0)
+      .setMax(45)
+*/
     val forest = new RandomForestClassifier()
       .setNumTrees(10)
       .setLabelCol("label")
       .setFeaturesCol("scaledFeatures")
       .setFeatureSubsetStrategy("auto")
-
-    val scalarLabelTrue = new MinMaxScaler()
-      .setInputCol("prediction")
-      .setOutputCol("predictionTrue")
+/*
+    val normalizeLabelTrue = new MinMaxScaler()
+      .setInputCol("label")
+      .setOutputCol("labelNorm")
       .setMin(minTemp)
       .setMax(maxTemp)
 
-    val stagesForest = Array(vector, standardScalar, scalarLabel, forest, scalarLabelTrue)
+    val normalizePrediction = new MinMaxScaler()
+      .setInputCol("prediction")
+      .setOutputCol("predictionNorm")
+      .setMin(minTemp)
+      .setMax(maxTemp)
+*/
+    val stagesForest = Array(vector, standardScalar, forest)
     val pipelineForest = new Pipeline().setStages(stagesForest)
 
     val paramForest = new ParamGridBuilder()
@@ -135,19 +150,23 @@ object Problem2 {
       .setNumFolds(2)  // Use 5-fold cross-validation //TODO è a 2 per renderlo più veloce ma deve essere 5
       .setParallelism(2)
 
-    val cvModelForest = cvForest.fit(trainData)
+    
+//    val cvModelForest = cvForest.fit(trainData)
 
     val model = pipelineForest.fit(trainData)
 
-    val predictionAndLabels = cvModelForest.transform(testData)
-      .select("airTemperature", "predictionTrue")
-      .rdd.map(row => (row.getDouble(0), row.getDouble(0)))
     
-    println(predictionAndLabels)
+    val predictionAndLabels = model.transform(testData)
+      .select("label", "prediction")
+      .rdd.map(row => (row.getInt(0) , row.getDouble(1) ))
+    
 
+    println("############################################################################################################################################") 
+    predictionAndLabels.foreach(row => println("Label: "+ row._1 + " Prediction: " + row._2))
+/*
 
     //val rddRowData = sc.parallelize(rowData)
-    val rawTestData2 = sc.textFile("./testData2") //Documento creato ad hoc
+    val rawTestData2 = sc.textFile("./testData2") //Documento creato ad hoc da aggiungere 
     val rddRowData = parseNOAA(rawTestData2)
 
     val anotherTestData = spark.createDataFrame(rddRowData, schema)
@@ -158,8 +177,8 @@ object Problem2 {
       .rdd.map(row => (row.getDouble(0), row.getDouble(0)))
 
     println(predictionAndLabelsAnother)
-
-
+*/
+/*
 
     //(c)
 
@@ -179,6 +198,6 @@ object Problem2 {
     fields.map(column => Statistics.corr(seriesX, column, "spearman"))
 
     println(s"Correlation is: ${fields.mkString("Array(", ", ", ")")}")
-
+*/
   }
 }
