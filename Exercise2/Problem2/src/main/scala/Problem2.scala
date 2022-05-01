@@ -1,7 +1,7 @@
 import org.apache.spark
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification.RandomForestClassifier
-import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
+import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
 import org.apache.spark.ml.feature.{MinMaxScaler, QuantileDiscretizer, StandardScaler, VectorAssembler}
 import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
 import org.apache.spark.mllib.linalg.Vectors
@@ -145,20 +145,20 @@ object Problem2 {
 
     val cvForest = new CrossValidator()
       .setEstimator(pipelineForest)
-      .setEvaluator(new BinaryClassificationEvaluator())
+      .setEvaluator(new MulticlassClassificationEvaluator())
       .setEstimatorParamMaps(paramForest)
       .setNumFolds(2)  // Use 5-fold cross-validation //TODO è a 2 per renderlo più veloce ma deve essere 5
       .setParallelism(2)
 
     
-//    val cvModelForest = cvForest.fit(trainData)
+    val cvModelForest = cvForest.fit(trainData)
 
     val model = pipelineForest.fit(trainData)
 
     
-    val predictionAndLabels = model.transform(testData)
+    val predictionAndLabels = cvModelForest.transform(testData)
       .select("label", "prediction")
-      .rdd.map(row => (row.getInt(0) , row.getDouble(1) ))
+      .rdd.map(row => (row.getInt(0) - 30, row.getDouble(1) -30))
     
 
     println("############################################################################################################################################") 
