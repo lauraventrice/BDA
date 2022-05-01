@@ -56,17 +56,22 @@ object Problem2 {
 
     var df : DataFrame = spark.emptyDataFrame
     val schemaString = "year month day hour latitude longitude elevationDimension directionAngle speedRate ceilingHeightDimension distanceDimension dewPointTemperature label"
-    var schema = new StructType
+    //var schema = new StructType
     // Generate the schema based on the string of schema
     val intField = "year month day hour elevationDimension directionAngle ceilingHeightDimension distanceDimension label"
 
+    val fields = schemaString.split(" ")
+      .map(fieldName => if (intField contains fieldName) StructField(fieldName, dataType = IntegerType, nullable = true)
+      else StructField(fieldName, dataType = DoubleType, nullable = true))
+    val schema = StructType(fields)
+
     if (new java.io.File(filePath).exists){ //Check if we saved the file yet
 
-      val fields = schemaString.split(" ")
+      /*val fields = schemaString.split(" ")
         .map(fieldName => if (intField contains fieldName) StructField(fieldName, dataType = IntegerType, nullable = true)
          else StructField(fieldName, dataType = DoubleType, nullable = true))
 
-      schema = StructType(fields)
+      schema = StructType(fields)*/
       df = spark.read.option("header",value = true).schema(schema)
         .csv(filePath)
 
@@ -75,10 +80,10 @@ object Problem2 {
       val rawNOAA = sc.textFile("./NOAA-065900/065900*")
       val parsedNOAA = parseNOAA(rawNOAA)
 
-      val fields = schemaString.split(" ")
+      /*val fields = schemaString.split(" ")
         .map(fieldName => if (intField contains fieldName) StructField(fieldName, dataType = IntegerType, nullable = true)
          else StructField(fieldName, dataType = DoubleType, nullable = true))
-      schema = StructType(fields)
+      schema = StructType(fields)*/
 
       //Create DataFrame
       df = spark.createDataFrame(parsedNOAA, schema)
@@ -158,12 +163,12 @@ object Problem2 {
     
     val predictionAndLabels = cvModelForest.transform(testData)
       .select("label", "prediction")
-      .rdd.map(row => (row.getInt(0) - 30, row.getDouble(1) -30))
+      .rdd.map(row => (row.getInt(0) - 30, row.getDouble(1) - 30))
     
 
     println("############################################################################################################################################") 
     predictionAndLabels.foreach(row => println("Label: "+ row._1 + " Prediction: " + row._2))
-/*
+
 
     //val rddRowData = sc.parallelize(rowData)
     val rawTestData2 = sc.textFile("./testData2") //Documento creato ad hoc da aggiungere 
@@ -173,11 +178,11 @@ object Problem2 {
 
     val predictionAndLabelsAnother = cvModelForest
       .transform(anotherTestData)
-      .select("airTemperature", "predictionTrue")
-      .rdd.map(row => (row.getDouble(0), row.getDouble(0)))
+      .select("label", "prediction")
+      .rdd.map(row => (row.getInt(0) - 30 , row.getDouble(1) - 30))
 
     println(predictionAndLabelsAnother)
-*/
+
 /*
 
     //(c)
