@@ -9,18 +9,26 @@ We created an Array of Integer with the number of the users who listened to at l
 Then, we filtered the original trainData to obtain a new RDD.
 
 (ii)
-We splitted the trainData100 in two different RDD, rispectively the 90% and 10% of the data, and we train a first reccomender model as the one that we saw at lesson.
-    val model = ALS.trainImplicit(trainData90, 10, 5, 0.01, 1.0)
+We splitted the trainData100 in two different RDD, respectively the 90% and 10% of the data as follow:
+val Array(trainData90, testData10) = trainData100.map(x => (x.user, x))
+      .groupByKey()
+      .flatMap(x => x._2)
+      .randomSplit(Array(0.9, 0.1)) 
+Then, we trained a first recommender model as the one that we saw at lesson:
+val model = ALS.trainImplicit(trainData90, 10, 5, 0.01, 1.0)
 
 (iii)
 After computing the top 25 most recommended artists for each of 100 random users, we used the function on the original script in order to compute the AUC.
 
-(b)
+The AUC computed with "recommendProducts" after all the the 100 random users is 57.447132191330596.
+The AUC computed with the "predictMostPopular" function from the original script is 53.85580757462877.
 
+After those results, we can say that the function that use the trained model to obtain the recommended artist for each user is better than the one tries to predict the most popular for each user. 
+
+(b)
 We created a triple for loop for searching the best hyper-parameters and we calculated the AUC, precision, recall and accuracy.
 
 (c)
-
 We created a new user:
 val newUserList = List(Rating(1609994, 7007868, 113), Rating(1609994, 10191561, 53), Rating(1609994, 10308181, 23),
       Rating(1609994, 10588243, 215), Rating(1609994, 9951079, 134), Rating(1609994, 10465886, 312),
