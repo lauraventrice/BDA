@@ -116,12 +116,10 @@ object Problem2 {
 
     predictionAndLabelsAnother.foreach(row => println("Day: "+ row._1 + " Prediction: " + row._2))
 
-/*
-
     //(c)
 
     val testMSE = predictionAndLabels.map{ case (v, p) => math.pow(v - p, 2) }.mean()
-    println(s"Test Mean Squared Error = $testMSE")*/
+    println(s"Test Mean Squared Error = $testMSE")
 
 
     //(d)
