@@ -1,6 +1,8 @@
 import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.evaluation.RegressionEvaluator
 import org.apache.spark.ml.feature.{StandardScaler, VectorAssembler}
 import org.apache.spark.ml.regression.RandomForestRegressor
+import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
 import org.apache.spark.mllib.stat.Statistics
 import org.apache.spark.rdd._
 import org.apache.spark.sql.types.{DoubleType, IntegerType, StructField, StructType}
@@ -97,9 +99,22 @@ object Problem2 {
     val stagesForest = Array(vector, standardScalar, forest)
     val pipelineForest = new Pipeline().setStages(stagesForest)
 
+    val paramForest = new ParamGridBuilder()
+      .addGrid(forest.maxDepth, Array(5)) //TODO add 10, 15
+      .addGrid(forest.maxBins, Array(20)) //TODO add 50, 100
+      .build()
+
+    val optimizedForest = new CrossValidator()
+      .setEstimator(pipelineForest)
+      .setEvaluator(new RegressionEvaluator().setLabelCol("airTemperature").setPredictionCol("prediction"))
+      .setEstimatorParamMaps(paramForest)
+      .setNumFolds(2) //TODO 5
+      .setParallelism(2)
+
+    val optimizedModel = optimizedForest.fit(trainData)
     val model = pipelineForest.fit(trainData)
 
-    val predictionAndLabels = model.transform(testData)
+    val predictionAndLabels = optimizedModel.transform(testData)
       .select("airTemperature", "prediction")
       .rdd.map(row => (row.getDouble(0), row.getDouble(1)))
     
@@ -110,7 +125,7 @@ object Problem2 {
 
     val anotherTestData = spark.createDataFrame(rddRowData, schema)
 
-    val predictionAndLabelsAnother = model
+    val predictionAndLabelsAnother = optimizedModel
       .transform(anotherTestData)
       .select("day", "prediction")
       .rdd.map(row => (row.getInt(0), row.getDouble(1)))

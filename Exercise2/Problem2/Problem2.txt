@@ -1,0 +1,58 @@
+#How to run 
+
+scalac -classpath $SPARK_HOME/jars/*:. Problem2.scala
+jar -cvf Problem2.jar Problem2*.class
+spark-submit --class Problem2 Problem2.jar
+
+##Explanation and results
+
+(a) We parsed the input files into an RDD using the function "parseNOAA" and then we trasformed the RDD into a Dataframe using "createDataFrame" of SparkSession. 
+
+(b) We split the data using the filter function of DataFrame and then we created the pipeline with 3 stages: 
+
+- VectorAssembler: in order to merge all features into a vector column;
+- StandardScalar: in order to decrease the convergence time
+- RandomForestRegressor: which is the model that we had to use in order to predict temperature. 
+
+AGGIUNGERE TEMPI CON CROSSVALIDATION E HPC
+
+We also created a new file called "testData2" with testData of recent dates in 2022, 13/04 - 14/04 - 15/04 - 16/04. 
+
+In that days we had this min max temperature (accuweather.com): 
+
+13/04 : 10 - 21
+14/04 : 11 - 19
+15/04 :  9 - 18
+16/04 :  4 - 15
+
+and the result that we obtain are : 
+
+13/04 : 9.15 
+14/04 : 9.15
+15/04 : 9.15
+16/04 : 9.85
+
+(c) We calculated the Mean Squared Error (MSE) using the following instruction: 
+
+val testMSE = predictionAndLabels.map{ case (v, p) => math.pow(v - p, 2) }.mean()
+
+with result = 8.831
+
+(d) In order to calculate the Spearman's correlation coefficient we had to select from the dataFrame our target attribute ("airTemperature") and then for each feature we selected the column and compute the coefficient. In the meantime we compare each correlation with the highest one. 
+
+Our result are: 
+- year      : 0.087
+- month     : 0.179
+- day       : 0.010
+- hour      : 0.101
+- longitude : -0.022
+- elevationDimension : -0.084
+- directionAngle : 0.039
+- speedRate : - 0.032
+- ceilingHeightDimension : 0.324
+- distanceDimension : 0.318
+- dewPointTemperature : 0.849
+
+Thus the attribute which has the highest correlation with airTemperature is dewPointTemperature. 
+
+
