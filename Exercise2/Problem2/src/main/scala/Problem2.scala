@@ -1,24 +1,10 @@
-import org.apache.spark
 import org.apache.spark.ml.Pipeline
-import org.apache.spark.ml.classification.RandomForestClassifier
-import org.apache.spark.ml.evaluation.{MulticlassClassificationEvaluator, RegressionEvaluator}
-import org.apache.spark.ml.feature.{MinMaxScaler, QuantileDiscretizer, StandardScaler, VectorAssembler}
-import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
-import org.apache.spark.mllib.linalg.Vectors
-import org.apache.spark.mllib.stat.Statistics
-import org.apache.spark.mllib.tree.RandomForest
-import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.rdd._
-import org.apache.spark.sql.functions.{asc, desc}
-import org.apache.spark.sql.{DataFrame, Dataset, Row}
-import org.apache.spark.sql.types.{DoubleType, IntegerType, StringType, StructField, StructType}
-import spire.compat.ordering
-import org.apache.spark.ml.linalg.VectorUDT
+import org.apache.spark.ml.feature.{StandardScaler, VectorAssembler}
 import org.apache.spark.ml.regression.RandomForestRegressor
-
-import javax.management.ValueExp
-import scala.math.Ordering.Implicits.infixOrderingOps
-import scala.reflect.io.File
+import org.apache.spark.rdd._
+import org.apache.spark.sql.types.{DoubleType, IntegerType, StructField, StructType}
+import org.apache.spark.sql.{DataFrame, Row}
+import org.apache.spark.{SparkConf, SparkContext}
 
 
 object Problem2 {
@@ -39,9 +25,9 @@ object Problem2 {
         val ceilingHeightDimension = line.substring(70, 75).toInt
         val distanceDimension = line.substring(78, 84).toInt
         val dewPointTemperature = line.substring(93, 98).toDouble / 10
-        val label = line.substring(87, 92).toDouble / 10
+        val airTemperature = line.substring(87, 92).toDouble / 10
 
-        Row(year, month, day, hour, latitude, longitude, elevationDimension, directionAngle, speedRate, ceilingHeightDimension, distanceDimension, dewPointTemperature, label)
+        Row(year, month, day, hour, latitude, longitude, elevationDimension, directionAngle, speedRate, ceilingHeightDimension, distanceDimension, dewPointTemperature, airTemperature)
       }
   }
 
@@ -57,23 +43,17 @@ object Problem2 {
       .getOrCreate
 
     var df : DataFrame = spark.emptyDataFrame
-    val schemaString = "year month day hour latitude longitude elevationDimension directionAngle speedRate ceilingHeightDimension distanceDimension dewPointTemperature label"
-    //var schema = new StructType
+    val schemaString = "year month day hour latitude longitude elevationDimension directionAngle speedRate ceilingHeightDimension distanceDimension dewPointTemperature airTemperature"
     // Generate the schema based on the string of schema
     val intField = "year month day hour elevationDimension directionAngle ceilingHeightDimension distanceDimension"
 
     val fields = schemaString.split(" ")
       .map(fieldName => if (intField contains fieldName) StructField(fieldName, dataType = IntegerType, nullable = true)
       else StructField(fieldName, dataType = DoubleType, nullable = true))
+
     val schema = StructType(fields)
 
     if (new java.io.File(filePath).exists){ //Check if we saved the file yet
-
-      /*val fields = schemaString.split(" ")
-        .map(fieldName => if (intField contains fieldName) StructField(fieldName, dataType = IntegerType, nullable = true)
-         else StructField(fieldName, dataType = DoubleType, nullable = true))
-
-      schema = StructType(fields)*/
       df = spark.read.option("header",value = true).schema(schema)
         .csv(filePath)
 
@@ -82,12 +62,6 @@ object Problem2 {
       val rawNOAA = sc.textFile("./NOAA-065900/065900*")
       val parsedNOAA = parseNOAA(rawNOAA)
 
-      /*val fields = schemaString.split(" ")
-        .map(fieldName => if (intField contains fieldName) StructField(fieldName, dataType = IntegerType, nullable = true)
-         else StructField(fieldName, dataType = DoubleType, nullable = true))
-      schema = StructType(fields)*/
-
-      //Create DataFrame
       df = spark.createDataFrame(parsedNOAA, schema)
 
       df.cache()
@@ -95,9 +69,6 @@ object Problem2 {
       df.repartition(1).write.option("header",value = true).csv(filePath)
     }
     //(b)
-   
-    //val minTemp = df.select("label").orderBy(asc("label")).first().getInt(0)
-    //val maxTemp = df.select("label").orderBy(desc("label")).first().getInt(0)
 
     val trainData= df.filter("year <= 2021")
     val testData = df.filter("year > 2021")
@@ -116,86 +87,46 @@ object Problem2 {
       .setInputCol("features")
       .setOutputCol("scaledFeatures")
 
-      /*
-    val normalizeLabel = new MinMaxScaler()
-      .setInputCol("airTemperature")
-      .setOutputCol("label")
-      .setMin(0)
-      .setMax(45)
-*/
     val forest = new RandomForestRegressor()
       .setNumTrees(10)
-      .setLabelCol("label")
+      .setLabelCol("airTemperature")
       .setFeaturesCol("scaledFeatures")
       .setFeatureSubsetStrategy("auto")
-/*
-    val normalizeLabelTrue = new MinMaxScaler()
-      .setInputCol("label")
-      .setOutputCol("labelNorm")
-      .setMin(minTemp)
-      .setMax(maxTemp)
 
-    val normalizePrediction = new MinMaxScaler()
-      .setInputCol("prediction")
-      .setOutputCol("predictionNorm")
-      .setMin(minTemp)
-      .setMax(maxTemp)
-*/
     val stagesForest = Array(vector, standardScalar, forest)
     val pipelineForest = new Pipeline().setStages(stagesForest)
 
-    val paramForest = new ParamGridBuilder()
-      .addGrid(forest.impurity, Array("variance"))
-      .addGrid(forest.maxDepth, Array(5)) //TODO add 10,15
-      .addGrid(forest.maxBins, Array(20)) //TODO add 50,100
-      .build()
-
-    val cvForest = new CrossValidator()
-      .setEstimator(pipelineForest)
-      .setEvaluator(new RegressionEvaluator().setLabelCol("label").setPredictionCol("prediction"))
-      .setEstimatorParamMaps(paramForest)
-      .setNumFolds(2)  // Use 5-fold cross-validation //TODO è a 2 per renderlo più veloce ma deve essere 5
-      .setParallelism(2)
-
-    
-    val cvModelForest = cvForest.fit(trainData)
-
     val model = pipelineForest.fit(trainData)
 
-    
-    val predictionAndLabels = cvModelForest.transform(testData)
-      .select("label", "prediction")
+    val predictionAndLabels = model.transform(testData)
+      .select("airTemperature", "prediction")
       .rdd.map(row => (row.getDouble(0), row.getDouble(1)))
     
-
-    println("############################################################################################################################################") 
     predictionAndLabels.foreach(row => println("Label: "+ row._1 + " Prediction: " + row._2))
 
-/*
-    //val rddRowData = sc.parallelize(rowData)
-    val rawTestData2 = sc.textFile("./testData2") //Documento creato ad hoc da aggiungere 
+    val rawTestData2 = sc.textFile("./testData2") //New test data 
     val rddRowData = parseNOAA(rawTestData2)
 
     val anotherTestData = spark.createDataFrame(rddRowData, schema)
 
-    val predictionAndLabelsAnother = cvModelForest
+    val predictionAndLabelsAnother = model
       .transform(anotherTestData)
-      .select("label", "prediction")
-      .rdd.map(row => (row.getInt(0) - 30 , row.getDouble(1) - 30))
+      .select("day", "prediction")
+      .rdd.map(row => (row.getInt(0), row.getDouble(1)))
 
-    println(predictionAndLabelsAnother)
-*/
+    predictionAndLabelsAnother.foreach(row => println("Day: "+ row._1 + " Prediction: " + row._2))
+
 /*
 
     //(c)
 
     val testMSE = predictionAndLabels.map{ case (v, p) => math.pow(v - p, 2) }.mean()
-    println(s"Test Mean Squared Error = $testMSE")
+    println(s"Test Mean Squared Error = $testMSE")*/
 
 
     //(d)
 
-    val seriesX: RDD[Double] = df.select("airTemperature").rdd.map(row => row.getDouble(0))
+    /*val seriesX: RDD[Double] = df.select("airTemperature").rdd.map(row => row.getDouble(0))
 
     println(seriesX)
 
@@ -204,7 +135,7 @@ object Problem2 {
     print(fields)
     fields.map(column => Statistics.corr(seriesX, column, "spearman"))
 
-    println(s"Correlation is: ${fields.mkString("Array(", ", ", ")")}")
-*/
+    println(s"Correlation is: ${fields.mkString("Array(", ", ", ")")}")*/
+
   }
 }
