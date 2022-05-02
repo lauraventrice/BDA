@@ -1,7 +1,7 @@
 import org.apache.spark
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification.RandomForestClassifier
-import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
+import org.apache.spark.ml.evaluation.{MulticlassClassificationEvaluator, RegressionEvaluator}
 import org.apache.spark.ml.feature.{MinMaxScaler, QuantileDiscretizer, StandardScaler, VectorAssembler}
 import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
 import org.apache.spark.mllib.linalg.Vectors
@@ -14,6 +14,8 @@ import org.apache.spark.sql.{DataFrame, Dataset, Row}
 import org.apache.spark.sql.types.{DoubleType, IntegerType, StringType, StructField, StructType}
 import spire.compat.ordering
 import org.apache.spark.ml.linalg.VectorUDT
+import org.apache.spark.ml.regression.RandomForestRegressor
+
 import javax.management.ValueExp
 import scala.math.Ordering.Implicits.infixOrderingOps
 import scala.reflect.io.File
@@ -37,7 +39,7 @@ object Problem2 {
         val ceilingHeightDimension = line.substring(70, 75).toInt
         val distanceDimension = line.substring(78, 84).toInt
         val dewPointTemperature = line.substring(93, 98).toDouble / 10
-        val label = ((line.substring(87, 92).toDouble / 10)+ 30).toInt 
+        val label = line.substring(87, 92).toDouble / 10
 
         Row(year, month, day, hour, latitude, longitude, elevationDimension, directionAngle, speedRate, ceilingHeightDimension, distanceDimension, dewPointTemperature, label)
       }
@@ -58,7 +60,7 @@ object Problem2 {
     val schemaString = "year month day hour latitude longitude elevationDimension directionAngle speedRate ceilingHeightDimension distanceDimension dewPointTemperature label"
     //var schema = new StructType
     // Generate the schema based on the string of schema
-    val intField = "year month day hour elevationDimension directionAngle ceilingHeightDimension distanceDimension label"
+    val intField = "year month day hour elevationDimension directionAngle ceilingHeightDimension distanceDimension"
 
     val fields = schemaString.split(" ")
       .map(fieldName => if (intField contains fieldName) StructField(fieldName, dataType = IntegerType, nullable = true)
@@ -94,8 +96,8 @@ object Problem2 {
     }
     //(b)
    
-    val minTemp = df.select("label").orderBy(asc("label")).first().getInt(0)
-    val maxTemp = df.select("label").orderBy(desc("label")).first().getInt(0)
+    //val minTemp = df.select("label").orderBy(asc("label")).first().getInt(0)
+    //val maxTemp = df.select("label").orderBy(desc("label")).first().getInt(0)
 
     val trainData= df.filter("year <= 2021")
     val testData = df.filter("year > 2021")
@@ -121,7 +123,7 @@ object Problem2 {
       .setMin(0)
       .setMax(45)
 */
-    val forest = new RandomForestClassifier()
+    val forest = new RandomForestRegressor()
       .setNumTrees(10)
       .setLabelCol("label")
       .setFeaturesCol("scaledFeatures")
@@ -143,14 +145,14 @@ object Problem2 {
     val pipelineForest = new Pipeline().setStages(stagesForest)
 
     val paramForest = new ParamGridBuilder()
-      .addGrid(forest.impurity, Array("entropy", "gini"))
+      .addGrid(forest.impurity, Array("variance"))
       .addGrid(forest.maxDepth, Array(5)) //TODO add 10,15
       .addGrid(forest.maxBins, Array(20)) //TODO add 50,100
       .build()
 
     val cvForest = new CrossValidator()
       .setEstimator(pipelineForest)
-      .setEvaluator(new MulticlassClassificationEvaluator())
+      .setEvaluator(new RegressionEvaluator().setLabelCol("label").setPredictionCol("prediction"))
       .setEstimatorParamMaps(paramForest)
       .setNumFolds(2)  // Use 5-fold cross-validation //TODO è a 2 per renderlo più veloce ma deve essere 5
       .setParallelism(2)
@@ -163,13 +165,13 @@ object Problem2 {
     
     val predictionAndLabels = cvModelForest.transform(testData)
       .select("label", "prediction")
-      .rdd.map(row => (row.getInt(0) - 30, row.getDouble(1) - 30))
+      .rdd.map(row => (row.getDouble(0), row.getDouble(1)))
     
 
     println("############################################################################################################################################") 
     predictionAndLabels.foreach(row => println("Label: "+ row._1 + " Prediction: " + row._2))
 
-
+/*
     //val rddRowData = sc.parallelize(rowData)
     val rawTestData2 = sc.textFile("./testData2") //Documento creato ad hoc da aggiungere 
     val rddRowData = parseNOAA(rawTestData2)
@@ -182,7 +184,7 @@ object Problem2 {
       .rdd.map(row => (row.getInt(0) - 30 , row.getDouble(1) - 30))
 
     println(predictionAndLabelsAnother)
-
+*/
 /*
 
     //(c)
