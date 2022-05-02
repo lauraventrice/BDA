@@ -1,6 +1,7 @@
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.{StandardScaler, VectorAssembler}
 import org.apache.spark.ml.regression.RandomForestRegressor
+import org.apache.spark.mllib.stat.Statistics
 import org.apache.spark.rdd._
 import org.apache.spark.sql.types.{DoubleType, IntegerType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Row}
@@ -77,7 +78,7 @@ object Problem2 {
     testData.cache()
 
     val columns = schemaString.split(" ")
-    val features = columns.filterNot(column => column.equals("label"))
+    val features = columns.filterNot(column => column.equals("airTemperature"))
 
     val vector = new VectorAssembler()
       .setInputCols(features)
@@ -124,16 +125,27 @@ object Problem2 {
 
     //(d)
 
-    /*val seriesX: RDD[Double] = df.select("airTemperature").rdd.map(row => row.getDouble(0))
+    val seriesX: RDD[Double] = df.select("airTemperature").rdd.map(row => row.getDouble(0))
 
     println(seriesX)
 
-    val fields = features.map(feature => df.select(feature).rdd.map(row => row.getDouble(0)))
+    var highestCorrelation = (0.0, "")
 
-    print(fields)
-    fields.map(column => Statistics.corr(seriesX, column, "spearman"))
+    for(feature <- features) {
+      val field = df.select(feature).rdd.map(row => 
+          if(intField contains feature) row.getInt(0).toDouble
+          else row.getDouble(0))
+      
+      val correlation = Statistics.corr(seriesX, field, "spearman")
+      if(correlation > highestCorrelation._1) 
+        highestCorrelation = (correlation, feature)
+      println("#############################################################################################################################à")
+      println(s"Correlation is: $correlation with $feature data")
+   
+    }
 
-    println(s"Correlation is: ${fields.mkString("Array(", ", ", ")")}")*/
+    println(s"Highest Correlation is: $highestCorrelation")
+  
 
   }
 }
