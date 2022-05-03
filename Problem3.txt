@@ -9,24 +9,30 @@ We created an Array of Integer with the number of the users who listened to at l
 Then, we filtered the original trainData to obtain a new RDD.
 
 (ii)
-We splitted the trainData100 in two different RDD, respectively the 90% and 10% of the data as follow:
-val Array(trainData90, testData10) = trainData100.map(x => (x.user, x))
-      .groupByKey()
-      .flatMap(x => x._2)
-      .randomSplit(Array(0.9, 0.1)) 
+We splitted the trainData100 in two different RDD, respectively the 90% and 10% of the data.
 Then, we trained a first recommender model as the one that we saw at lesson:
 val model = ALS.trainImplicit(trainData90, 10, 5, 0.01, 1.0)
 
 (iii)
 After computing the top 25 most recommended artists for each of 100 random users, we used the function on the original script in order to compute the AUC.
 
-The AUC computed with "recommendProducts" after all the the 100 random users is 57.447132191330596.
+The AUC computed with "recommendProducts" after all the the 100 random users is 59.883564535888866.
 The AUC computed with the "predictMostPopular" function from the original script is 53.85580757462877.
 
 After those results, we can say that the function that use the trained model to obtain the recommended artist for each user is better than the one tries to predict the most popular for each user. 
 
 (b)
 We created a triple for loop for searching the best hyper-parameters and we calculated the AUC, precision, recall and accuracy.
+
+The best model is the one with (rank = 10, lambda = 1.0, alpha = 1.0) and total AUC = 62.40294523666311.
+The worst one is with (rank = 50, lambda = 1.0, alpha = 100.0) and total AUC = 37.6974111640517.
+The cross validation needed two hour and half to finish.
+
+For the best one we analyzed the:
+- AUC = 62.40294523666311 (the one computed above, obviously this result is the sum of all the AUC for each user as the one computed in the original script, otherwise the AUC can be only in the range [0,1])
+- recall =
+- precision = 
+- accuracy = 
 
 (c)
 We created a new user:
@@ -35,7 +41,11 @@ val newUserList = List(Rating(1609994, 7007868, 113), Rating(1609994, 10191561, 
       Rating(1609994, 1331600, 124), Rating(1609994, 10236358, 76), Rating(1609994, 2008710, 54),
       Rating(1609994, 9910593, 97))
 
-The number was not in the original list and we put in the rating one of us' some of favourite artists.
+The number was not in the original list and we put in the rating some of our favorite artists.
+The recommended system suggest to us some new artists:
+- Jimmy Eat World (with the highest ranking score)
+- Jack Johnson
+- Snow Patrol
+and others.
 
-COMMENTA LA SCELTA MIGLIORE E I RISULTATI
-PER IL PUNTO B MANCA IL REPORT DEL RUNTIME PER LA CROSS VALIDATION 
+The highest artists in the ranking are pretty similar to what we like, and someone of them we listened before. The more we go down the list, more different are the artists from our tastes. For example the last one (with a rank of 0.6719234687463578) is far away from us. I think the experiment was successful as I think Spotify could suggest them to me too.

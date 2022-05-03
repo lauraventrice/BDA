@@ -8,7 +8,7 @@ object Problem3 {
     val sc = new SparkContext(sparkConf)
 
     val rawArtistAlias = sc.textFile("./Data/audioscrobbler/artist_alias.txt")
-    val rawUserArtistData = sc.textFile("./Data/audioscrobbler/user_artist_data.txt")
+    val rawUserArtistData = sc.textFile("./Data/audioscrobbler/user_artist_data.txt").sample(false, 0.01)
 
     val artistAlias = rawArtistAlias.flatMap { line =>
       val tokens = line.split('\t')
@@ -32,10 +32,10 @@ object Problem3 {
 
     //(a)
     //(i)
-    //users who listened to at least 100 distinct artists (72,748)
+    // Users who listened to at least 100 distinct artists (72,748)
     val counts = trainData.map(elem => (elem.user, 1))
       .reduceByKey(_ + _)
-      .filter(elem => elem._2 >= 100)
+      .filter(elem => elem._2 >= 30)
       .map(c => c._1)
       .collect()
 
@@ -46,13 +46,15 @@ object Problem3 {
     //Split the rdd in two different rdd in which for each user in trainData100,
     // there are about 90% of the artists this user has listened in trainData90
     // while the remaining 10% are in testData10
-    val Array(trainData90, testData10) = trainData100.map(x => (x.user, x))
+    val newRdd = trainData100.map(x => (x.user, x))
       .groupByKey()
-      .flatMap(x => x._2)
-      .randomSplit(Array(0.9, 0.1))
+      .map(x => x._2.splitAt((x._2.size*0.9).toInt))
+    val trainData90 = newRdd.flatMap(x => x._1)
+    val testData10 = newRdd.flatMap(x => x._2)
 
     //Train the model
-    val model = ALS.trainImplicit(trainData90, 10, 5, 0.01, 1.0)
+    //TODO scommenta
+    //val model = ALS.trainImplicit(trainData90, 10, 5, 0.01, 1.0)
 
     //(iii)
     //Take 100 random users
@@ -102,6 +104,7 @@ object Problem3 {
       AUC
     }
 
+    //TODO scommenta
     /*
     var AUC1 = 0.0
     var AUC2 = 0.0
@@ -125,10 +128,10 @@ object Problem3 {
       val metrics2 = new BinaryClassificationMetrics(sc.parallelize(predictionsAndLabels2))
       AUC2 += metrics2.areaUnderROC
     }
-
      */
-    //(b)
 
+    //(b)
+    /*
     val evaluations = for(rank <- Array(10, 25, 50);
                           lambda <- Array(1.0, 0.01, 0.001);
                           alpha <- Array(1.0, 10.0, 100.0))
@@ -137,52 +140,66 @@ object Problem3 {
       val auc = getTotalAUC(modelCrossValidation)
       ((rank, lambda, alpha), auc)
     }
+
     evaluations.sortBy(_._2).reverse.foreach(println)
+     */
+    val bestModel = ALS.trainImplicit(trainData90, 10, 5, 1.0, 1.0)
 
-    /*
-    //TODO metti i parametri del modello migliore
-    val bestModel = ALS.trainImplicit(trainData90, 10, 5, 10, 10)
-
-    val predictionsAndLabels: Array[(Double, Double)] = null
+    var predictionsAndLabels: Array[(Double, Double)] = Array()
     for(someUser <- someUsers) {
       val actualArtists = actualArtistsForUser(someUser)
-      val recommendations = model.recommendProducts(someUser, 25)
-      predictionsAndLabels +: recommendations.map {
+      val recommendations = bestModel.recommendProducts(someUser, 25)
+      predictionsAndLabels = predictionsAndLabels.union(recommendations.map {
         case Rating(user, artist, rating) =>
           if (actualArtists.contains(artist)) {
             (rating, 1.0)
           } else {
             (rating, 0.0)
           }
-      }
+      })
     }
-    val metrics = new BinaryClassificationMetrics(sc.parallelize(predictionsAndLabels))
-    metrics.areaUnderROC()
-    metrics.precisionByThreshold()
-    metrics.recallByThreshold()
-    //TODO calcola accuracy
 
-    //TODO calcola il runtime
-     */
+    val rddPredictionAndLabels = sc.parallelize(predictionsAndLabels)
+
+    //Precision
+    val predictionComputed = rddPredictionAndLabels
+      .filter(pl => pl._1 >= 0.5 && pl._2.equals(1.0)).count()
+      .toDouble / rddPredictionAndLabels.filter(pl => pl._1 >= 0.5).count().toDouble
+    println("Prediction " + predictionComputed)
+
+    //Recall
+    val recallComputed = rddPredictionAndLabels
+      .filter(pl => pl._1 >= 0.5 && pl._2.equals(1.0)).count()
+      .toDouble / rddPredictionAndLabels.filter(pl => pl._2.equals(1.0)).count().toDouble
+    println("Recall " + recallComputed)
+
+    //Accuracy
+    val accuracyComputed = rddPredictionAndLabels.filter(pl => {
+      val prediction = pl._1
+      if(prediction < 0.5){
+        pl._2.equals(0.0)
+      }else{
+        pl._2.equals(1.0)
+      }
+    }).count().toDouble / rddPredictionAndLabels.count().toDouble
+    println("Accuracy: " + accuracyComputed)
+
+    /*
     //(c)
     //New user information
-    /*val newUserList = List(Rating(1609994, 7007868, 113), Rating(1609994, 10191561, 53), Rating(1609994, 10308181, 23),
+    val newUserList = List(Rating(1609994, 7007868, 113), Rating(1609994, 10191561, 53), Rating(1609994, 10308181, 23),
       Rating(1609994, 10588243, 215), Rating(1609994, 9951079, 134), Rating(1609994, 10465886, 312),
       Rating(1609994, 1331600, 124), Rating(1609994, 10236358, 76), Rating(1609994, 2008710, 54),
       Rating(1609994, 9910593, 97))
     val newUser = sc.parallelize(newUserList)
 
     //New trainData
-    val trainDataModified = trainData90.union(newUser)
+    val trainDataModified = trainData.union(newUser)
     //Model with best choice
-    //TODO trova le best choice
-    // val model = ALS.trainImplicit(trainData90, 10, 5, 0.01, 1.0)*/
-
-/*
-    val actualArtistsNewUser = actualArtistsForUser(1609994)
+    val modelNewUser = ALS.trainImplicit(trainDataModified, 10, 5, 1.0, 1.0)
 
     val recommendationsNewUser = modelNewUser.recommendProducts(1609994, 25)
-    */
-    //TODO stampa i raccomandati per l'utente e commenta se sono carini o meno
+
+    recommendationsNewUser.sortBy(_.rating).reverse.foreach(println)*/
   }
 }
