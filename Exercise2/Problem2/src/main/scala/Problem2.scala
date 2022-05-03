@@ -37,7 +37,7 @@ object Problem2 {
   def main(args: Array[String]): Unit = {
     //(a)
     val filePath = "./dataFrame"
-    val sparkConf = new SparkConf().setAppName("SparkWordCount")
+    val sparkConf = new SparkConf().setAppName("Problem2")
     val sc = new SparkContext(sparkConf)
 
     val spark = org.apache.spark.sql.SparkSession.builder
@@ -100,25 +100,22 @@ object Problem2 {
     val pipelineForest = new Pipeline().setStages(stagesForest)
 
     val paramForest = new ParamGridBuilder()
-      .addGrid(forest.maxDepth, Array(5)) //TODO add 10, 15
-      .addGrid(forest.maxBins, Array(20)) //TODO add 50, 100
+      .addGrid(forest.maxDepth, Array(5, 10, 15))
+      .addGrid(forest.maxBins, Array(20, 50, 100))
       .build()
 
     val optimizedForest = new CrossValidator()
       .setEstimator(pipelineForest)
       .setEvaluator(new RegressionEvaluator().setLabelCol("airTemperature").setPredictionCol("prediction"))
       .setEstimatorParamMaps(paramForest)
-      .setNumFolds(2) //TODO 5
+      .setNumFolds(5)
       .setParallelism(2)
 
     val optimizedModel = optimizedForest.fit(trainData)
-    val model = pipelineForest.fit(trainData)
 
     val predictionAndLabels = optimizedModel.transform(testData)
       .select("airTemperature", "prediction")
       .rdd.map(row => (row.getDouble(0), row.getDouble(1)))
-    
-    predictionAndLabels.foreach(row => println("Label: "+ row._1 + " Prediction: " + row._2))
 
     val rawTestData2 = sc.textFile("./testData2") //New test data 
     val rddRowData = parseNOAA(rawTestData2)
@@ -130,19 +127,13 @@ object Problem2 {
       .select("day", "prediction")
       .rdd.map(row => (row.getInt(0), row.getDouble(1)))
 
-    predictionAndLabelsAnother.foreach(row => println("Day: "+ row._1 + " Prediction: " + row._2))
-
     //(c)
-
     val testMSE = predictionAndLabels.map{ case (v, p) => math.pow(v - p, 2) }.mean()
     println(s"Test Mean Squared Error = $testMSE")
-
 
     //(d)
 
     val seriesX: RDD[Double] = df.select("airTemperature").rdd.map(row => row.getDouble(0))
-
-    println(seriesX)
 
     var highestCorrelation = (0.0, "")
 
@@ -154,7 +145,7 @@ object Problem2 {
       val correlation = Statistics.corr(seriesX, field, "spearman")
       if(correlation > highestCorrelation._1) 
         highestCorrelation = (correlation, feature)
-      println("#############################################################################################################################à")
+      println("#############################################################################################################################")
       println(s"Correlation is: $correlation with $feature data")
    
     }
