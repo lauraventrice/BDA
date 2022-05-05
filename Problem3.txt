@@ -30,9 +30,14 @@ The cross validation needed two hour and half to finish.
 
 For the best one we analyzed the:
 - AUC = 62.40294523666311 (the one computed above, obviously this result is the sum of all the AUC for each user as the one computed in the original script, otherwise the AUC can be only in the range [0,1])
-- recall =
-- precision = 
-- accuracy = 
+- recall = 0.8726772195457674
+- precision = 0.6055396370582617
+- accuracy = 0.5956
+
+They are computed by the formulas which we studied in theory.
+accuracy = (TP+TN)/#examples
+recall = TP/#POS examples
+precision = TP/(TP+FP)
 
 (c)
 We created a new user:

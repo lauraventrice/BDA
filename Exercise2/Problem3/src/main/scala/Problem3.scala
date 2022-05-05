@@ -8,7 +8,7 @@ object Problem3 {
     val sc = new SparkContext(sparkConf)
 
     val rawArtistAlias = sc.textFile("./Data/audioscrobbler/artist_alias.txt")
-    val rawUserArtistData = sc.textFile("./Data/audioscrobbler/user_artist_data.txt").sample(false, 0.01)
+    val rawUserArtistData = sc.textFile("./Data/audioscrobbler/user_artist_data.txt")
 
     val artistAlias = rawArtistAlias.flatMap { line =>
       val tokens = line.split('\t')
@@ -35,7 +35,7 @@ object Problem3 {
     // Users who listened to at least 100 distinct artists (72,748)
     val counts = trainData.map(elem => (elem.user, 1))
       .reduceByKey(_ + _)
-      .filter(elem => elem._2 >= 30)
+      .filter(elem => elem._2 >= 100)
       .map(c => c._1)
       .collect()
 
@@ -53,8 +53,7 @@ object Problem3 {
     val testData10 = newRdd.flatMap(x => x._2)
 
     //Train the model
-    //TODO scommenta
-    //val model = ALS.trainImplicit(trainData90, 10, 5, 0.01, 1.0)
+    val model = ALS.trainImplicit(trainData90, 10, 5, 0.01, 1.0)
 
     //(iii)
     //Take 100 random users
@@ -104,8 +103,6 @@ object Problem3 {
       AUC
     }
 
-    //TODO scommenta
-    /*
     var AUC1 = 0.0
     var AUC2 = 0.0
 
@@ -128,10 +125,8 @@ object Problem3 {
       val metrics2 = new BinaryClassificationMetrics(sc.parallelize(predictionsAndLabels2))
       AUC2 += metrics2.areaUnderROC
     }
-     */
 
     //(b)
-    /*
     val evaluations = for(rank <- Array(10, 25, 50);
                           lambda <- Array(1.0, 0.01, 0.001);
                           alpha <- Array(1.0, 10.0, 100.0))
@@ -142,7 +137,7 @@ object Problem3 {
     }
 
     evaluations.sortBy(_._2).reverse.foreach(println)
-     */
+
     val bestModel = ALS.trainImplicit(trainData90, 10, 5, 1.0, 1.0)
 
     var predictionsAndLabels: Array[(Double, Double)] = Array()
@@ -162,10 +157,10 @@ object Problem3 {
     val rddPredictionAndLabels = sc.parallelize(predictionsAndLabels)
 
     //Precision
-    val predictionComputed = rddPredictionAndLabels
+    val precisionComputed = rddPredictionAndLabels
       .filter(pl => pl._1 >= 0.5 && pl._2.equals(1.0)).count()
       .toDouble / rddPredictionAndLabels.filter(pl => pl._1 >= 0.5).count().toDouble
-    println("Prediction " + predictionComputed)
+    println("Precision " + precisionComputed)
 
     //Recall
     val recallComputed = rddPredictionAndLabels
@@ -184,7 +179,6 @@ object Problem3 {
     }).count().toDouble / rddPredictionAndLabels.count().toDouble
     println("Accuracy: " + accuracyComputed)
 
-    /*
     //(c)
     //New user information
     val newUserList = List(Rating(1609994, 7007868, 113), Rating(1609994, 10191561, 53), Rating(1609994, 10308181, 23),
@@ -200,6 +194,6 @@ object Problem3 {
 
     val recommendationsNewUser = modelNewUser.recommendProducts(1609994, 25)
 
-    recommendationsNewUser.sortBy(_.rating).reverse.foreach(println)*/
+    recommendationsNewUser.sortBy(_.rating).reverse.foreach(println)
   }
 }
