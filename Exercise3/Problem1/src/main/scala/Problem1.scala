@@ -10,17 +10,23 @@ object Problem1 {
   // ------------------------ Parse the Wikipedia Movie Data ----------------------
   def parseLine(line: String): Row = {
     try {
-      var s = line.substring(0, line.indexOf(","))
-      val title = s.substring(0, s.indexOf(","))
-      s = title.substring(title.indexOf(","))
+      var s = line.substring(line.indexOf(",") + 1)
+      var title = ""
+      if(s.charAt(0)=='"') {
+        title = s.substring(0, s.indexOf("\""))
+      } else {
+        title = s.substring(0, s.indexOf(","))
+      }
+      println(title)
+      s = s.substring(s.indexOf(",") + 1)
       var i = 0
       while(i < 3) {
-        s = s.substring(s.indexOf(","))
+        s = s.substring(s.indexOf(",") + 1) 
         i += 1
       }
-      val genre = s.substring(0, s.indexOf(","))
-      s = genre.substring(genre.indexOf(",")).substring(s.indexOf(","))
-      val plot = s.substring(0)
+      val genre = s.substring(0, s.indexOf(",") + 1)
+      s = s.substring(s.indexOf(",") + 1).substring(s.indexOf(",") + 1)
+      val plot = s
       Row(title, genre, plot)
     } catch {
       case e: Exception => Row("", "", "")
@@ -35,11 +41,12 @@ object Problem1 {
       if(line != "Release Year,Title,Origin/Ethnicity,Director,Cast,Genre,Wiki Page,Plot") {
         try {
           if (line.endsWith("\"")) {
-            movie = parseLine(line)
-            movies += movie
+            content = content.concat(" " + line)
+            movie = parseLine(content)
+            movies.append(movie)
             content = ""
           } else {
-            content += line + "\n"
+            content = content.concat(" " + line)
           }
         } catch {
           case e: Exception => content = ""
@@ -74,7 +81,8 @@ object Problem1 {
 
       df.cache()
     } else {
-      val rawMovies = sc.textFile("./wiki_movie_plots_deduped*")
+      val rawMovies = sc.textFile("./wiki_movie_plots_deduped.csv")
+      
       val parsedMovies = sc.parallelize(parse(rawMovies))
 
       df = spark.createDataFrame(parsedMovies, schema)
