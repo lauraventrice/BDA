@@ -14,18 +14,30 @@ object Problem1 {
       var title = ""
       if(s.charAt(0)=='"') {
         title = s.substring(0, s.indexOf("\""))
+        s = s.substring(s.indexOf("\"") + 2)
       } else {
         title = s.substring(0, s.indexOf(","))
+        s = s.substring(s.indexOf(",") + 1)
       }
       println(title)
-      s = s.substring(s.indexOf(",") + 1)
-      var i = 0
-      while(i < 3) {
-        s = s.substring(s.indexOf(",") + 1) 
-        i += 1
+      s = s.substring(s.indexOf(",") + 1) //Origin/Ethnicity
+      if(s.charAt(0)=='"') {
+        s = s.substring(s.indexOf("\"") + 2) //Director
+      } else {
+        s = s.substring(s.indexOf(",") + 1) //Director
+      }
+      if(s.charAt(0)=='"') {
+        s = s.substring(s.indexOf("\"") + 2) //Cast
+      } else {
+        s = s.substring(s.indexOf(",") + 1) //Cast
       }
       val genre = s.substring(0, s.indexOf(",") + 1)
-      s = s.substring(s.indexOf(",") + 1).substring(s.indexOf(",") + 1)
+      s = s.substring(s.indexOf(",") + 1)
+      if(s.charAt(0)=='"') {
+        s = s.substring(s.indexOf("\"") + 2) //Wiki page
+      } else {
+        s = s.substring(s.indexOf(",") + 1) //Wiki page
+      }
       val plot = s
       Row(title, genre, plot)
     } catch {
