@@ -12,28 +12,33 @@ object Problem1 {
     try {
       var s = line.substring(line.indexOf(",") + 1) //Release Year 
       var title = ""
-      if(s.charAt(0)=='"') {
-        title = s.substring(1, s.indexOf("\""))
-        s = s.substring(s.indexOf("\"") + 2)
+      if(s.startsWith("\"")) {
+        s = s.substring(1)
+        title = s.substring(0, s.indexOf("\""))
+        s = s.substring(s.indexOf("\""))
       } else {
         title = s.substring(0, s.indexOf(","))
         s = s.substring(s.indexOf(",") + 1)
       }
       println(title)
+      val origin = s.substring(0, s.indexOf(","))
+      println(origin)
       s = s.substring(s.indexOf(",") + 1) //Origin/Ethnicity
-      if(s.charAt(0)=='"') {
+      if(s.startsWith("\"")) {
         s = s.substring(s.indexOf("\"") + 2) //Director
       } else {
         s = s.substring(s.indexOf(",") + 1) //Director
       }
-      if(s.charAt(0)=='"') {
-        s = s.substring(s.indexOf("\"") + 2) //Cast
+      if(s.startsWith("\"")) {
+        s = s.substring(s.indexOf("\"") + 1) //Cast
       } else {
-        s = s.substring(s.indexOf(",") + 1) //Cast
+        s = s.substring(s.indexOf(",")) //Cast
       }
-      val genre = s.substring(0, s.indexOf(",") + 1)
+      val genre = s.substring(0, s.indexOf(","))
+      println(genre)
       s = s.substring(s.indexOf(",") + 1)
-      if(s.charAt(0)=='"') {
+
+      if(s.startsWith("\"")) {
         s = s.substring(s.indexOf("\"") + 2) //Wiki page
       } else {
         s = s.substring(s.indexOf(",") + 1) //Wiki page
@@ -52,7 +57,9 @@ object Problem1 {
     for (line <- lines) {
       if(line != "Release Year,Title,Origin/Ethnicity,Director,Cast,Genre,Wiki Page,Plot") {
         try {
-          if (line.endsWith("\"") && !line.endsWith("\"\"")) {
+          println(line.endsWith("\"") && !line.endsWith("\"\""))
+          println(content)
+          if (line.endsWith("\"")) {
             content = content.concat(" " + line)
             movie = parseLine(content)
             movies.append(movie)
@@ -93,15 +100,15 @@ object Problem1 {
 
       df.cache()
     } else {
-      val rawMovies = sc.textFile("./wiki_movie_plots_deduped.csv")
-      
-      val parsedMovies = sc.parallelize(parse(rawMovies))
+      val rawMovies = sc.textFile("./Try_parsing.csv")
+      val parseMovies = parse(rawMovies)
+      //val parsedMovies = sc.parallelize(parse(rawMovies))
 
-      df = spark.createDataFrame(parsedMovies, schema)
+      //df = spark.createDataFrame(parsedMovies, schema)
 
-      df.cache()
+      //df.cache()
 
-      df.repartition(1).write.option("header",value = true).csv(filePath)
+     // df.repartition(1).write.option("header",value = true).csv(filePath)
     }
     /*
     //(b)
