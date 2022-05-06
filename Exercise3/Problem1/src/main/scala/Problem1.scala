@@ -10,10 +10,10 @@ object Problem1 {
   // ------------------------ Parse the Wikipedia Movie Data ----------------------
   def parseLine(line: String): Row = {
     try {
-      var s = line.substring(line.indexOf(",") + 1)
+      var s = line.substring(line.indexOf(",") + 1) //Release Year 
       var title = ""
       if(s.charAt(0)=='"') {
-        title = s.substring(0, s.indexOf("\""))
+        title = s.substring(1, s.indexOf("\""))
         s = s.substring(s.indexOf("\"") + 2)
       } else {
         title = s.substring(0, s.indexOf(","))
@@ -52,7 +52,7 @@ object Problem1 {
     for (line <- lines) {
       if(line != "Release Year,Title,Origin/Ethnicity,Director,Cast,Genre,Wiki Page,Plot") {
         try {
-          if (line.endsWith("\"")) {
+          if (line.endsWith("\"") && !line.endsWith("\"\"")) {
             content = content.concat(" " + line)
             movie = parseLine(content)
             movies.append(movie)
