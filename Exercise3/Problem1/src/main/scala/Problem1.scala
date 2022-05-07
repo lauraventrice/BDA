@@ -15,34 +15,43 @@ object Problem1 {
       if(s.startsWith("\"")) {
         s = s.substring(1)
         title = s.substring(0, s.indexOf("\""))
-        s = s.substring(s.indexOf("\""))
+        s = s.substring(s.indexOf("\"") + 2)
       } else {
         title = s.substring(0, s.indexOf(","))
         s = s.substring(s.indexOf(",") + 1)
       }
-      println(title)
+      println("TITLE: " + title)
       val origin = s.substring(0, s.indexOf(","))
-      println(origin)
+      println("ORIGIN: " + origin)
       s = s.substring(s.indexOf(",") + 1) //Origin/Ethnicity
       if(s.startsWith("\"")) {
+        s = s.substring(1)
+        println("DIRECTOR: " + s.substring(0, s.indexOf("\"")))
         s = s.substring(s.indexOf("\"") + 2) //Director
       } else {
+        println("DIRECTOR: " + s.substring(0, s.indexOf(",")))
         s = s.substring(s.indexOf(",") + 1) //Director
       }
       if(s.startsWith("\"")) {
-        s = s.substring(s.indexOf("\"") + 1) //Cast
+        println("CAST: " + s.substring(0, s.indexOf("\"")))
+        s = s.substring(s.indexOf("\"") + 2) //Cast
       } else {
-        s = s.substring(s.indexOf(",")) //Cast
+        println("CAST: " + s.substring(0, s.indexOf(",")))
+        s = s.substring(s.indexOf(",") + 1) //Cast
       }
       val genre = s.substring(0, s.indexOf(","))
-      println(genre)
+      println("GENRE: " + genre)
       s = s.substring(s.indexOf(",") + 1)
 
       if(s.startsWith("\"")) {
+        s = s.substring(1)
+        println("WIKI PAGE: " + s.substring(0, s.indexOf("\"")))
         s = s.substring(s.indexOf("\"") + 2) //Wiki page
       } else {
+        println("WIKI PAGE: " + s.substring(0, s.indexOf(",")))
         s = s.substring(s.indexOf(",") + 1) //Wiki page
       }
+      println("PLOT: " + s)
       val plot = s
       Row(title, genre, plot)
     } catch {
@@ -57,15 +66,14 @@ object Problem1 {
     for (line <- lines) {
       if(line != "Release Year,Title,Origin/Ethnicity,Director,Cast,Genre,Wiki Page,Plot") {
         try {
-          println(line.endsWith("\"") && !line.endsWith("\"\""))
-          println(content)
+          
           if (line.endsWith("\"")) {
-            content = content.concat(" " + line)
+            content = content.concat(line).concat(" ")
             movie = parseLine(content)
             movies.append(movie)
             content = ""
           } else {
-            content = content.concat(" " + line)
+            content = content + line + " "
           }
         } catch {
           case e: Exception => content = ""
@@ -100,15 +108,17 @@ object Problem1 {
 
       df.cache()
     } else {
-      val rawMovies = sc.textFile("./Try_parsing.csv")
+      val rawMovies = sc.textFile("./Try_parsing.csv", 1)
+
       val parseMovies = parse(rawMovies)
+      val rddParseMovies = sc.parallelize(parseMovies)
       //val parsedMovies = sc.parallelize(parse(rawMovies))
 
-      //df = spark.createDataFrame(parsedMovies, schema)
+      df = spark.createDataFrame(rddParseMovies, schema)
 
-      //df.cache()
+      df.cache()
 
-     // df.repartition(1).write.option("header",value = true).csv(filePath)
+      df.repartition(1).write.option("header",value = true).csv(filePath)
     }
     /*
     //(b)
