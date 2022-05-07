@@ -20,40 +20,30 @@ object Problem1 {
         title = s.substring(0, s.indexOf(","))
         s = s.substring(s.indexOf(",") + 1)
       }
-      println("TITLE: " + title)
-      val origin = s.substring(0, s.indexOf(","))
-      println("ORIGIN: " + origin)
       s = s.substring(s.indexOf(",") + 1) //Origin/Ethnicity
-      if(s.startsWith("\"")) {
-        s = s.substring(1)
-        println("DIRECTOR: " + s.substring(0, s.indexOf("\"")))
-        s = s.substring(s.indexOf("\"") + 2) //Director
-      } else {
-        println("DIRECTOR: " + s.substring(0, s.indexOf(",")))
-        s = s.substring(s.indexOf(",") + 1) //Director
-      }
-      if(s.startsWith("\"")) {
-        println("CAST: " + s.substring(0, s.indexOf("\"")))
-        s = s.substring(s.indexOf("\"") + 2) //Cast
-      } else {
-        println("CAST: " + s.substring(0, s.indexOf(",")))
-        s = s.substring(s.indexOf(",") + 1) //Cast
-      }
+      var i = 0
+      while (i < 2) { //Director and Cast
+        if(s.startsWith("\"")) {
+          s = s.substring(1)
+          s = s.substring(s.indexOf("\"") + 2)
+        } else {
+          s = s.substring(s.indexOf(",") + 1)
+        }
+        i = i + 1
+      }    
+      
       val genre = s.substring(0, s.indexOf(","))
       println("GENRE: " + genre)
       s = s.substring(s.indexOf(",") + 1)
 
-      if(s.startsWith("\"")) {
+      if(s.startsWith("\"")) { //Wiki Page
         s = s.substring(1)
-        println("WIKI PAGE: " + s.substring(0, s.indexOf("\"")))
-        s = s.substring(s.indexOf("\"") + 2) //Wiki page
+        s = s.substring(s.indexOf("\"") + 2)
       } else {
-        println("WIKI PAGE: " + s.substring(0, s.indexOf(",")))
-        s = s.substring(s.indexOf(",") + 1) //Wiki page
+        s = s.substring(s.indexOf(",") + 1) 
       }
-      println("PLOT: " + s)
+      
       val plot = s
-      println(Row(title, genre, plot))
       Row(title, genre, plot)
     } catch {
       case e: Exception => Row("", "", "")
@@ -70,9 +60,9 @@ object Problem1 {
   def parseLines(lines: RDD[String]): Array[String] = {
     val result = ArrayBuffer.empty[String]
     var content = ""
-    val linesArray = lines.collect()
+    var linesArray = lines.collect()
     println(linesArray(0))
-    linesArray.slice(1, linesArray.length)
+    linesArray = linesArray.slice(1, linesArray.length)
     for (line <- linesArray) {
       if(line.endsWith("\"")) {
         content = content.concat(line)
@@ -82,7 +72,7 @@ object Problem1 {
         content = content + line + " "
       }
     }
-    println("Lunghezza: " + result.length)
+    
     result.toArray
 
   }
@@ -113,7 +103,7 @@ object Problem1 {
 
       df.cache()
     } else {
-      val rawMovies = sc.textFile("./Try_parsing.csv", 1)
+      val rawMovies = sc.textFile("./wiki_movie_plots_deduped.csv", 1)
       
       val rawMoviesLines = sc.parallelize(parseLines(rawMovies))
       val parsedMovies = parse(rawMoviesLines)
