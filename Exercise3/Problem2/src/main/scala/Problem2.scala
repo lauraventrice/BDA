@@ -34,11 +34,11 @@ object Problem2 {
     distance(centroid, vector)
   }
 
-  def getScore(pos: Int, weight: Int): Int = {
-    (30 - (pos * 3)) * weight
+  def getScore(pos: Int, weight: Double): Int = {
+    ((30 - (pos * 3)) * weight).toInt
   }
 
-  def scoringFunction(orderedArray: ArrayBuffer[(Int, String, Double)], weight: Int): ArrayBuffer[(Int, String, Int)] = {
+  def scoringFunction(orderedArray: ArrayBuffer[(Int, String, Double)], weight: Double): ArrayBuffer[(Int, String, Int)] = {
     val scoreArray: ArrayBuffer[(Int, String, Int)] = ArrayBuffer()
     orderedArray.indices.foreach(i => {
       scoreArray += ((orderedArray(i)._1, orderedArray(i)._2, getScore(i, weight)))
@@ -68,6 +68,7 @@ object Problem2 {
 
     val rawData = sc.textFile("./archive/Run_*").sample(withReplacement = false, 0.01, seed = 11)
 
+    // Take the data rdd
     val data = rawData.map { line =>
       val buffer = line.split(',').toBuffer
       val vector = Vectors.dense(buffer.map(x => logitFunction(x.toDouble)).toArray)
@@ -77,6 +78,7 @@ object Problem2 {
     val distancesArray: ArrayBuffer[(Int, Double)] = ArrayBuffer()
     val models: ArrayBuffer[KMeansModel] = ArrayBuffer()
 
+    // Choose the best k for the clustering
     (10 to 70 by 10).foreach(k => {
       val KMeans = new KMeans().setK(k).setEpsilon(1.0e-4)
       val meansModel = KMeans.run(data)
@@ -87,7 +89,7 @@ object Problem2 {
     val bestDistance = distancesArray.sortBy(_._2).take(1)(0)
     val bestModel = models(bestDistance._1/10 - 1)
 
-    // Decide threshold for anomalies
+    // Find anomalies and remove them from the data
     val newData = data.filter(d => distToCentroid(d, bestModel) < bestDistance._2*2)
 
     val distancesToCentroid: ArrayBuffer[(Int, String, Double)] = ArrayBuffer()
@@ -96,6 +98,7 @@ object Problem2 {
 
     val modelsAnalyze: ArrayBuffer[(Int, String, KMeansModel)] = ArrayBuffer()
 
+    // Run K-Means multiple time to obtain different first centroids
     (1 to 10).foreach(i => {
       initializationMode.foreach(elem => {
         val KMeans = new KMeans().setK(bestDistance._1).setEpsilon(1.0e-4).setInitializationMode(elem)
@@ -109,17 +112,17 @@ object Problem2 {
 
     println("Clusters Cohesion: ")
     val orderedCohesion = cohesion.sortBy(x => x._3).reverse
-    val scoreCohesion = scoringFunction(orderedCohesion, 1)
+    val scoreCohesion = scoringFunction(orderedCohesion, 1.0)
     orderedCohesion.foreach(println)
 
     println("Distance To Centroid: ")
     val orderedDistance = distancesToCentroid.sortBy(x => x._3)
-    val scoreDistance = scoringFunction(orderedDistance, 1)
+    val scoreDistance = scoringFunction(orderedDistance, 1.0)
     orderedDistance.foreach(println)
 
     println("Computational Cost: ")
     val orderedWSS = wss.sortBy(x => x._3)
-    val scoreWSS = scoringFunction(orderedWSS, 1)
+    val scoreWSS = scoringFunction(orderedWSS, 0.5)
     orderedWSS.foreach(println)
 
     val best = getBestScore(scoreWSS ++ scoreCohesion ++ scoreDistance)
