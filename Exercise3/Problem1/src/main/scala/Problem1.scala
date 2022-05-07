@@ -53,35 +53,40 @@ object Problem1 {
       }
       println("PLOT: " + s)
       val plot = s
+      println(Row(title, genre, plot))
       Row(title, genre, plot)
     } catch {
       case e: Exception => Row("", "", "")
     }
   }
 
-  def parse(lines: RDD[String]): Array[Row] = {
-    val movies = ArrayBuffer.empty[Row]
-    var movie = Row.empty
+  def parse(lines: RDD[String]): RDD[Row] = {
+    lines.map { line =>
+        parseLine(line)
+      } 
+      
+  }
+  
+  def parseLines(lines: RDD[String]): Array[String] = {
+    val result = ArrayBuffer.empty[String]
     var content = ""
-    for (line <- lines) {
-      if(line != "Release Year,Title,Origin/Ethnicity,Director,Cast,Genre,Wiki Page,Plot") {
-        try {
-          
-          if (line.endsWith("\"")) {
-            content = content.concat(line).concat(" ")
-            movie = parseLine(content)
-            movies.append(movie)
-            content = ""
-          } else {
-            content = content + line + " "
-          }
-        } catch {
-          case e: Exception => content = ""
-        }
+    val linesArray = lines.collect()
+    println(linesArray(0))
+    linesArray.slice(1, linesArray.length)
+    for (line <- linesArray) {
+      if(line.endsWith("\"")) {
+        content = content.concat(line)
+        result.append(content)
+        content = ""
+      } else {
+        content = content + line + " "
       }
     }
-    movies.toArray
+    println("Lunghezza: " + result.length)
+    result.toArray
+
   }
+
 
   def main(args: Array[String]): Unit = {
     //(a)
@@ -109,12 +114,11 @@ object Problem1 {
       df.cache()
     } else {
       val rawMovies = sc.textFile("./Try_parsing.csv", 1)
+      
+      val rawMoviesLines = sc.parallelize(parseLines(rawMovies))
+      val parsedMovies = parse(rawMoviesLines)
 
-      val parseMovies = parse(rawMovies)
-      val rddParseMovies = sc.parallelize(parseMovies)
-      //val parsedMovies = sc.parallelize(parse(rawMovies))
-
-      df = spark.createDataFrame(rddParseMovies, schema)
+      df = spark.createDataFrame(parsedMovies, schema)
 
       df.cache()
 
