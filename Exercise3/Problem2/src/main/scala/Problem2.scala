@@ -2,15 +2,14 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.mllib.clustering._
 import org.apache.spark.mllib.linalg._
 import org.apache.spark.rdd.RDD
-import scala.math._
 
-import java.io._
+import java.io.{BufferedWriter, File, FileWriter}
+import scala.math._
 import scala.collection.mutable.ArrayBuffer
 
 object Problem2 {
   val initializationMode: Array[String] = Array("k-means||", "random")
-  // Cluster cohesion: measures how related the objects in the cluster are
-  // TODO nel txt spiega che questo massimizzato permette di non avere la situazione di k = numero di oggetti
+  // Cluster cohesion: measures how distant the objects in the cluster are
   def clusterCohesion(data: RDD[Vector], meansModel: KMeansModel): Double = {
     val tmp = data.map(vector => {
       val dist = distToCentroid(vector, meansModel)
@@ -20,8 +19,6 @@ object Problem2 {
   }
 
   // Normalization function
-  // TODO la teniamo ?
-  // TODO il 5 ok?
   def logitFunction(value: Double): Double = 5 / (1 + exp(-value))
 
   // Distance between two elements
@@ -61,6 +58,22 @@ object Problem2 {
     (max, bestParam)
   }
 
+  def getBest(array: ArrayBuffer[(Int, Double)]): (Int, Double) = {
+    val threshold = 1.2
+    var elem = array(0)
+    var flag = true
+    var i = 0
+    while (flag) {
+      if(i != 0) {
+        if (array(i-1)._2 > array(i)._2 * threshold) elem = array(i)
+        else flag = false
+      }
+      if(i.equals(array.length)) flag = false
+      i = i+1
+    }
+    elem
+  }
+
   def main(args: Array[String]): Unit = {
     val conf = new SparkConf().setAppName(this.getClass.getSimpleName)
     val sc = new SparkContext(conf)
@@ -76,17 +89,34 @@ object Problem2 {
     }.cache()
 
     val distancesArray: ArrayBuffer[(Int, Double)] = ArrayBuffer()
+    val clusterCohesionArray: ArrayBuffer[(Int, Double)] = ArrayBuffer()
     val models: ArrayBuffer[KMeansModel] = ArrayBuffer()
 
     // Choose the best k for the clustering
-    (10 to 70 by 10).foreach(k => {
+    (10 to 100 by 10).foreach(k => {
       val KMeans = new KMeans().setK(k).setEpsilon(1.0e-4)
       val meansModel = KMeans.run(data)
       distancesArray += ((k, data.map(d => distToCentroid(d, meansModel)).mean()))
+      clusterCohesionArray += ((k, clusterCohesion(data, meansModel)))
       models += meansModel
     })
 
-    val bestDistance = distancesArray.sortBy(_._2).take(1)(0)
+    // TODO non mi piace, fallo in un modo più bello
+    val file = new File("./file.txt")
+    val bw = new BufferedWriter(new FileWriter(file))
+    clusterCohesionArray.foreach(x => {
+      bw.write(x._2.toString)
+      bw.write(",")
+    })
+    bw.write("\n")
+    clusterCohesionArray.foreach(x => {
+      bw.write(x._1.toString)
+      bw.write(",")
+    })
+    bw.close()
+
+    val bestClusterCohesion = getBest(clusterCohesionArray)
+    val bestDistance = distancesArray.filter(elem => elem._1.equals(bestClusterCohesion._1)).take(1)(0)
     val bestModel = models(bestDistance._1/10 - 1)
 
     // Find anomalies and remove them from the data
@@ -127,9 +157,12 @@ object Problem2 {
 
     val best = getBestScore(scoreWSS ++ scoreCohesion ++ scoreDistance)
     println("The best is: " + best)
+    println("The best cluster cohesion is: " + bestClusterCohesion)
+    println("The best distance is: " + bestDistance)
     val bestFinalModel = modelsAnalyze.filter(elem => elem._1.equals(best._2._1) && elem._2.equals(best._2._2))(0)._3
 
     val sample = newData.map(vector => bestFinalModel.predict(vector) + "," + vector.toArray.mkString(",")).sample(false, 0.01)
-    sample.saveAsTextFile("./kmeans-sample")
+    sample.repartition(1).saveAsTextFile("./kmeans-sample")
+
   }
 }

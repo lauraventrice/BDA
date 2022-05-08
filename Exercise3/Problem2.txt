@@ -1,0 +1,8 @@
+First, we load the whole set of String in an rdd. Then, in order to obtain the data, we splitted the rdd.
+To avoid the k-means problem about the different scales of values, we used the logit function. This function is used in the logic regression to transform all the value in a range between 0 and 1:
+logit function = 1 / (1 + exp(-value))
+We changed this function, multiplying for 5, to obtain a range between 0 and 5.
+
+After, we searched the best k for the k-means (we started with a small amount of cluster, but, at the end we though that increase the number of cluster were be better). We saved the mean distance from centroid for each clustering and we took the best one.
+
+Subsequently, storia delle anomalie doppio distanza media
