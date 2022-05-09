@@ -2,14 +2,14 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.mllib.clustering._
 import org.apache.spark.mllib.linalg._
 import org.apache.spark.rdd.RDD
-
 import java.io.{BufferedWriter, File, FileWriter}
 import scala.math._
 import scala.collection.mutable.ArrayBuffer
 
 object Problem2 {
   val initializationMode: Array[String] = Array("k-means||", "random")
-  // Cluster cohesion: measures how distant the objects in the cluster are
+
+  // Cluster cohesion: it measures how distant the objects in the cluster are
   def clusterCohesion(data: RDD[Vector], meansModel: KMeansModel): Double = {
     val tmp = data.map(vector => {
       val dist = distToCentroid(vector, meansModel)
@@ -31,10 +31,12 @@ object Problem2 {
     distance(centroid, vector)
   }
 
+  // Give a score for each position (max score 30)
   def getScore(pos: Int, weight: Double): Int = {
     ((30 - (pos * 3)) * weight).toInt
   }
 
+  // Give score for each array
   def scoringFunction(orderedArray: ArrayBuffer[(Int, String, Double)], weight: Double): ArrayBuffer[(Int, String, Int)] = {
     val scoreArray: ArrayBuffer[(Int, String, Int)] = ArrayBuffer()
     orderedArray.indices.foreach(i => {
@@ -58,17 +60,16 @@ object Problem2 {
     (max, bestParam)
   }
 
+  // Obtain the best number of cluster k
   def getBest(array: ArrayBuffer[(Int, Double)]): (Int, Double) = {
     val threshold = 1.2
     var elem = array(0)
     var flag = true
-    var i = 0
+    var i = 1
     while (flag) {
-      if(i != 0) {
-        if (array(i-1)._2 > array(i)._2 * threshold) elem = array(i)
-        else flag = false
-      }
-      if(i.equals(array.length)) flag = false
+      if (array(i-1)._2 > array(i)._2 * threshold) elem = array(i)
+      else flag = false
+      if(i.equals(array.length-1)) flag = false
       i = i+1
     }
     elem
@@ -77,9 +78,10 @@ object Problem2 {
   def main(args: Array[String]): Unit = {
     val conf = new SparkConf().setAppName(this.getClass.getSimpleName)
     val sc = new SparkContext(conf)
-    sc.setLogLevel("ERROR")
+    // TODO scommenta
+    //sc.setLogLevel("ERROR")
 
-    val rawData = sc.textFile("./archive/Run_*").sample(withReplacement = false, 0.01, seed = 11)
+    val rawData = sc.textFile("./archive/Run_*")
 
     // Take the data rdd
     val data = rawData.map { line =>
@@ -101,17 +103,10 @@ object Problem2 {
       models += meansModel
     })
 
-    // TODO non mi piace, fallo in un modo più bello
-    val file = new File("./file.txt")
+    val file = new File("./numberK.txt")
     val bw = new BufferedWriter(new FileWriter(file))
     clusterCohesionArray.foreach(x => {
-      bw.write(x._2.toString)
-      bw.write(",")
-    })
-    bw.write("\n")
-    clusterCohesionArray.foreach(x => {
-      bw.write(x._1.toString)
-      bw.write(",")
+      bw.write(x._1.toString + "," + x._2.toString + "\n")
     })
     bw.close()
 
@@ -156,13 +151,17 @@ object Problem2 {
     orderedWSS.foreach(println)
 
     val best = getBestScore(scoreWSS ++ scoreCohesion ++ scoreDistance)
+    val bestFinalModel = modelsAnalyze.filter(elem => elem._1.equals(best._2._1) && elem._2.equals(best._2._2))(0)._3
+
     println("The best is: " + best)
     println("The best cluster cohesion is: " + bestClusterCohesion)
     println("The best distance is: " + bestDistance)
-    val bestFinalModel = modelsAnalyze.filter(elem => elem._1.equals(best._2._1) && elem._2.equals(best._2._2))(0)._3
 
-    val sample = newData.map(vector => bestFinalModel.predict(vector) + "," + vector.toArray.mkString(",")).sample(false, 0.01)
-    sample.repartition(1).saveAsTextFile("./kmeans-sample")
+    val partialExample = newData.map(vector => bestFinalModel.predict(vector) + "," + vector.toArray.mkString(",")).sample(false, 0.01)
+    partialExample.repartition(1).saveAsTextFile("./partialExample")
 
+    // TODO fallo una volta poi commentalo
+    val totalExample = newData.map(vector => bestFinalModel.predict(vector) + "," + vector.toArray.mkString(","))
+    totalExample.repartition(1).saveAsTextFile("./totalExample")
   }
 }
