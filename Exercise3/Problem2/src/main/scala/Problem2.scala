@@ -7,7 +7,7 @@ import scala.math._
 import scala.collection.mutable.ArrayBuffer
 
 object Problem2 {
-  val initializationMode: Array[String] = Array("c", "random")
+  val initializationMode: Array[String] = Array("k-means||", "random")
 
   // It measures how distant the objects in the cluster are
   def clusterSquareDistance(data: RDD[Vector], meansModel: KMeansModel): Double = {
@@ -159,7 +159,7 @@ object Problem2 {
     val partialExample = newData.map(vector => bestFinalModel.predict(vector) + "," + vector.toArray.mkString(",")).sample(false, 0.01)
     partialExample.repartition(1).saveAsTextFile("./partialExample")
 
-    /*val totalExample = newData.map(vector => bestFinalModel.predict(vector) + "," + vector.toArray.mkString(","))
-    totalExample.repartition(1).saveAsTextFile("./totalExample")*/
+    val totalExample = newData.map(vector => bestFinalModel.predict(vector) + "," + vector.toArray.mkString(","))
+    totalExample.repartition(1).saveAsTextFile("./totalExample")
   }
 }
