@@ -6,4 +6,19 @@ At the beginning, we loaded the whole set of data and we normalized every featur
 1 / (1 + exp(-value)) 
 that transform the value in a range [0,1] and then we multiplied the result by 5.
 
-Scelta miglior k 
+The next point was to choose the best number of cluster "k" for clustering. We used the squared distance in order to obtain this value. We computed this metric on a small amount of cluster (between 1 to 10), but we discovered that they were too small. That is why we started to find the value between 10 and 70 (10 as step). 
+The main idea is that if we plot the squared distance for each cluster we can obtain an hyperbole in which the location of a bend (knee) is generally considered as an indicator of the appropriate number of clusters (Elbow method). It is also possible to plot this graph on the python source code attached.
+In order to obtain the same results without using a plot, we chose a threshold value (1.2) to decide the best number of cluster. If from a step to another there is less than 1.2 of difference, it means that we need to stop here, because we found the correct value. 
+Eventually, we wrote these results in a file txt in order to plot them by python. 
+
+After finding the best choice, we removed also the anomalies in the data (values which has a distance twice more than the mean).
+
+In the end, we ran 20 times the K-means to obtain the best centroid (10 times with "random" operator and 10 times with "k-means||" operator). Then we gave to each model a score for three different metrics (square distance, mean distance and computational cost). For each of them we created a formula:
+((30 - (pos * 3)) * weight) in which pos is the position in the ranking array and weight is the weight that we gave to this parameter (for example, computational cost has a weight of 0.5, because it is less important of the other two for us, but it is not totally useless).
+
+Eventually, we got the best model (the one with the highest score) and we created two files: 
+- the firs with a portion of the set of examples and their clusters 
+- the second one with the whole set of examples 
+On python, it is possible to see the 3d plot of the clustering.
+
+The runtime of the whole code is less than 20 minutes.

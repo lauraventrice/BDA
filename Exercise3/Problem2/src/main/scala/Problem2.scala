@@ -7,10 +7,10 @@ import scala.math._
 import scala.collection.mutable.ArrayBuffer
 
 object Problem2 {
-  val initializationMode: Array[String] = Array("k-means||", "random")
+  val initializationMode: Array[String] = Array("c", "random")
 
-  // Cluster cohesion: it measures how distant the objects in the cluster are
-  def clusterCohesion(data: RDD[Vector], meansModel: KMeansModel): Double = {
+  // It measures how distant the objects in the cluster are
+  def clusterSquareDistance(data: RDD[Vector], meansModel: KMeansModel): Double = {
     val tmp = data.map(vector => {
       val dist = distToCentroid(vector, meansModel)
       dist * dist
@@ -78,8 +78,7 @@ object Problem2 {
   def main(args: Array[String]): Unit = {
     val conf = new SparkConf().setAppName(this.getClass.getSimpleName)
     val sc = new SparkContext(conf)
-    // TODO scommenta
-    //sc.setLogLevel("ERROR")
+    sc.setLogLevel("ERROR")
 
     val rawData = sc.textFile("./archive/Run_*")
 
@@ -91,7 +90,7 @@ object Problem2 {
     }.cache()
 
     val distancesArray: ArrayBuffer[(Int, Double)] = ArrayBuffer()
-    val clusterCohesionArray: ArrayBuffer[(Int, Double)] = ArrayBuffer()
+    val clusterSquareDistanceArray: ArrayBuffer[(Int, Double)] = ArrayBuffer()
     val models: ArrayBuffer[KMeansModel] = ArrayBuffer()
 
     // Choose the best k for the clustering
@@ -99,19 +98,19 @@ object Problem2 {
       val KMeans = new KMeans().setK(k).setEpsilon(1.0e-4)
       val meansModel = KMeans.run(data)
       distancesArray += ((k, data.map(d => distToCentroid(d, meansModel)).mean()))
-      clusterCohesionArray += ((k, clusterCohesion(data, meansModel)))
+      clusterSquareDistanceArray += ((k, clusterSquareDistance(data, meansModel)))
       models += meansModel
     })
 
     val file = new File("./numberK.txt")
     val bw = new BufferedWriter(new FileWriter(file))
-    clusterCohesionArray.foreach(x => {
+    clusterSquareDistanceArray.foreach(x => {
       bw.write(x._1.toString + "," + x._2.toString + "\n")
     })
     bw.close()
 
-    val bestClusterCohesion = getBest(clusterCohesionArray)
-    val bestDistance = distancesArray.filter(elem => elem._1.equals(bestClusterCohesion._1)).take(1)(0)
+    val bestSquareDistance = getBest(clusterSquareDistanceArray)
+    val bestDistance = distancesArray.filter(elem => elem._1.equals(bestSquareDistance._1)).take(1)(0)
     val bestModel = models(bestDistance._1/10 - 1)
 
     // Find anomalies and remove them from the data
@@ -119,7 +118,7 @@ object Problem2 {
 
     val distancesToCentroid: ArrayBuffer[(Int, String, Double)] = ArrayBuffer()
     val wss: ArrayBuffer[(Int, String,  Double)] = ArrayBuffer()
-    val cohesion: ArrayBuffer[(Int, String, Double)] = ArrayBuffer()
+    val squareDistance: ArrayBuffer[(Int, String, Double)] = ArrayBuffer()
 
     val modelsAnalyze: ArrayBuffer[(Int, String, KMeansModel)] = ArrayBuffer()
 
@@ -130,15 +129,15 @@ object Problem2 {
         val meansModel = KMeans.run(newData)
         distancesToCentroid += ((i, elem, newData.map(vector => distToCentroid(vector, meansModel)).mean()))
         wss += ((i, elem, meansModel.computeCost(newData)))
-        cohesion += ((i, elem, clusterCohesion(newData, meansModel)))
+        squareDistance += ((i, elem, clusterSquareDistance(newData, meansModel)))
         modelsAnalyze += ((i, elem, meansModel))
       })
     })
 
-    println("Clusters Cohesion: ")
-    val orderedCohesion = cohesion.sortBy(x => x._3).reverse
-    val scoreCohesion = scoringFunction(orderedCohesion, 1.0)
-    orderedCohesion.foreach(println)
+    println("Clusters Square Distance: ")
+    val orderedSquareDistance = squareDistance.sortBy(x => x._3)
+    val scoreSquareDistance = scoringFunction(orderedSquareDistance, 1.0)
+    orderedSquareDistance.foreach(println)
 
     println("Distance To Centroid: ")
     val orderedDistance = distancesToCentroid.sortBy(x => x._3)
@@ -150,18 +149,17 @@ object Problem2 {
     val scoreWSS = scoringFunction(orderedWSS, 0.5)
     orderedWSS.foreach(println)
 
-    val best = getBestScore(scoreWSS ++ scoreCohesion ++ scoreDistance)
+    val best = getBestScore(scoreWSS ++ scoreSquareDistance ++ scoreDistance)
     val bestFinalModel = modelsAnalyze.filter(elem => elem._1.equals(best._2._1) && elem._2.equals(best._2._2))(0)._3
 
     println("The best is: " + best)
-    println("The best cluster cohesion is: " + bestClusterCohesion)
+    println("The best cluster square distance is: " + bestSquareDistance)
     println("The best distance is: " + bestDistance)
 
     val partialExample = newData.map(vector => bestFinalModel.predict(vector) + "," + vector.toArray.mkString(",")).sample(false, 0.01)
     partialExample.repartition(1).saveAsTextFile("./partialExample")
 
-    // TODO fallo una volta poi commentalo
-    val totalExample = newData.map(vector => bestFinalModel.predict(vector) + "," + vector.toArray.mkString(","))
-    totalExample.repartition(1).saveAsTextFile("./totalExample")
+    /*val totalExample = newData.map(vector => bestFinalModel.predict(vector) + "," + vector.toArray.mkString(","))
+    totalExample.repartition(1).saveAsTextFile("./totalExample")*/
   }
 }
