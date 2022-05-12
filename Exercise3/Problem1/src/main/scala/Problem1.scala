@@ -148,17 +148,33 @@ object Problem1 {
     var linesArray = lines.collect()
     println(linesArray(0))
     linesArray = linesArray.slice(0, linesArray.length)
+    var concat = false
     for (line <- linesArray) {
       /* quando bisogna concatenare? due casi condizioni insieme
       * 1) il plot inizia con virgoletta e non finisce con virgoletta
       * */
-      if(plotStartsWithQuotationMarks(line) && !line.endsWith("\"")) {//se è vero
-        content = content + line + " "
+      if(!concat) {
+        concat = plotStartsWithQuotationMarks(line) && !line.endsWith("\"")
+        if(concat) {
+          content = content + line + " "
+        } else {
+          content = content.concat(line)
+          result.append(content)
+          println("RIGA: " + content)
+          content = ""
+        }
       } else {
-        content = content.concat(line)
-        result.append(content)
-        println("RIGA: " + content)
-        content = ""
+        //si concatena
+        if(line.endsWith("\"")) {
+          content = content.concat(line)
+          result.append(content)
+          println("RIGA: " + content)
+          content = ""
+          concat = false
+        } else {
+          content = content + line + " "
+        }
+
       }
     }
     
