@@ -9,45 +9,67 @@ object Problem1 {
 
   // ------------------------ Parse the Wikipedia Movie Data ----------------------
   def parseLine(line: String): Row = {
-    try {
-      var s = line.substring(line.indexOf(",") + 1) //Release Year 
-      var title = ""
-      if(s.startsWith("\"")) {
-        s = s.substring(1)
-        title = s.substring(0, s.indexOf("\""))
-        s = s.substring(s.indexOf("\"") + 2)
-      } else {
-        title = s.substring(0, s.indexOf(","))
-        s = s.substring(s.indexOf(",") + 1)
-      }
-      s = s.substring(s.indexOf(",") + 1) //Origin/Ethnicity
-      var i = 0
-      while (i < 2) { //Director and Cast
-        if(s.startsWith("\"")) {
-          s = s.substring(1)
-          s = s.substring(s.indexOf("\"") + 2)
-        } else {
-          s = s.substring(s.indexOf(",") + 1)
-        }
-        i = i + 1
-      }    
-      
-      val genre = s.substring(0, s.indexOf(","))
-      println("GENRE: " + genre)
-      s = s.substring(s.indexOf(",") + 1)
-
-      if(s.startsWith("\"")) { //Wiki Page
-        s = s.substring(1)
-        s = s.substring(s.indexOf("\"") + 2)
-      } else {
-        s = s.substring(s.indexOf(",") + 1) 
-      }
-      
-      val plot = s
-      Row(title, genre, plot)
-    } catch {
-      case e: Exception => Row("", "", "")
+    
+    var s = line.substring(line.indexOf(",")) //Release Year 
+    var title = ""
+    if(s.startsWith(",\"")) {
+      s = s.substring(2)
+      title = s.substring(0, s.indexOf("\""))
+      s = s.substring(s.indexOf("\"") + 1)
+    } else {
+      s = s.substring(1)
+      title = s.substring(0, s.indexOf(","))
+      s = s.substring(s.indexOf(","))
     }
+    println(s"TITLE: $title")
+    s = s.substring(1) //VIRGOLA
+    //println("ORIGIN: " + s.substring(0, s.indexOf(",")))
+    s = s.substring(s.indexOf(",")) //Origin/Ethnicity
+    //println(s"REST STRING AFTER ORIGIN: $s")
+    var i = 0
+    while (i < 2) { //Director and Cast
+      if(s.startsWith(",\"")) {
+        s = s.substring(2)
+        //println("DIRECTOR/CAST: " + s.substring(0, s.indexOf("\"")))
+        s = s.substring(s.indexOf("\"") + 1)
+      } else {
+        s = s.substring(1)
+        //println("DIRECTOR/CAST: " + s.substring(0, s.indexOf(",")))
+        s = s.substring(s.indexOf(","))
+      }
+      i = i + 1
+    }    
+     
+    //println(s"STRING AFTER DIRECTOR AND CAST: $s")
+    var genre = ""
+    if(s.startsWith(",\"")) {
+      s = s.substring(2)
+      genre = s.substring(0, s.indexOf("\""))
+      s = s.substring(s.indexOf("\"") + 1)
+    } else {
+      s = s.substring(1)
+      genre = s.substring(0, s.indexOf(","))
+      s = s.substring(s.indexOf(","))
+    }
+      
+    println(s"GENRE: $genre")
+    //println(s"RESTO DOPO GENRE: $s")
+    s = s.substring(s.indexOf(","))
+
+    if(s.startsWith(",\"")) { //Wiki Page
+      s = s.substring(2)
+      //println("WIKIPAGE: " + s.substring(0, s.indexOf("\"")))
+      s = s.substring(s.indexOf("\"") + 1)
+    } else {
+      s = s.substring(1)
+      //println("WIKI PAGE: " + s.substring(0, s.indexOf(",")))
+      s = s.substring(s.indexOf(",")) 
+    }
+    s = s.substring(1)      
+    println(s"PLOT: $s")
+    val plot = s
+    Row(title, genre, plot)
+    
   }
 
   def parse(lines: RDD[String]): RDD[Row] = {
@@ -56,17 +78,22 @@ object Problem1 {
       } 
       
   }
-  
+  /*
+  def plotStartsWithQuotationMarks(movie: String): Boolean = {
+    
+  }*/
+
   def parseLines(lines: RDD[String]): Array[String] = {
     val result = ArrayBuffer.empty[String]
     var content = ""
     var linesArray = lines.collect()
     println(linesArray(0))
-    linesArray = linesArray.slice(1, linesArray.length)
+    linesArray = linesArray.slice(0, linesArray.length)
     for (line <- linesArray) {
       if(line.endsWith("\"")) {
         content = content.concat(line)
         result.append(content)
+        println("RIGA: " + content)
         content = ""
       } else {
         content = content + line + " "
@@ -103,9 +130,10 @@ object Problem1 {
 
       df.cache()
     } else {
-      val rawMovies = sc.textFile("./wiki_movie_plots_deduped.csv", 1)
-      
-      val rawMoviesLines = sc.parallelize(parseLines(rawMovies))
+      val rawMovies = sc.textFile("./Try_parsing.csv", 1)
+      val parsedLines = parseLines(rawMovies)
+
+      val rawMoviesLines = sc.parallelize(parsedLines)
       val parsedMovies = parse(rawMoviesLines)
 
       df = spark.createDataFrame(parsedMovies, schema)
