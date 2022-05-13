@@ -8,14 +8,15 @@ import scala.collection.mutable._
 object Problem1 {
 
   // ------------------------ Parse the Wikipedia Movie Data ----------------------
+
   def parseLine(line: String): Row = {
     
     var s = line.substring(line.indexOf(",")) //Release Year 
     var title = ""
     if(s.startsWith(",\"")) {
       s = s.substring(2)
-      title = s.substring(0, s.indexOf("\""))
-      s = s.substring(s.indexOf("\"") + 1)
+      title = s.substring(0, s.indexOf("\","))
+      s = s.substring(s.indexOf("\",") + 1)
     } else {
       s = s.substring(1)
       title = s.substring(0, s.indexOf(","))
@@ -31,7 +32,7 @@ object Problem1 {
       if(s.startsWith(",\"")) {
         s = s.substring(2)
         //println("DIRECTOR/CAST: " + s.substring(0, s.indexOf("\"")))
-        s = s.substring(s.indexOf("\"") + 1)
+        s = s.substring(s.indexOf("\",") + 1)
       } else {
         s = s.substring(1)
         //println("DIRECTOR/CAST: " + s.substring(0, s.indexOf(",")))
@@ -75,11 +76,10 @@ object Problem1 {
   def parse(lines: RDD[String]): RDD[Row] = {
     lines.map { line =>
         parseLine(line)
-      } 
-      
+      }
   }
 
-  def plotStartsWithQuotationMarks(movie: String): Boolean = {
+  def isToConcat(movie: String): Boolean = {
     try {
       println(s"STRINGA PRIMA DI CONTROLLARE IL PLOT: $movie")
       var s = movie.substring(movie.indexOf(",")) //Release Year
@@ -158,9 +158,7 @@ object Problem1 {
       * 1) il plot inizia con virgoletta e non finisce con virgoletta
       * */
       if(!concat) {
-        //concat = plotStartsWithQuotationMarks(line) && ((!line.endsWith("\"") && !line.endsWith("\"\"\"")) || line.endsWith("\"\"") || line.endsWith(",\""))
-        concat = plotStartsWithQuotationMarks(line)
-        if(concat) {
+       if(isToConcat(line)) {
           content = content + line + " "
         } else {
           content = content.concat(line)
@@ -195,22 +193,9 @@ object Problem1 {
           content = content + line + " "
           //continuo a concatenare
         }
-        /*
-        if(line.endsWith("\"") || (line.endsWith("\"\"\"") && !line.endsWith("\"\""))) {
-          content = content.concat(line)
-          result.append(content)
-          println("RIGA: " + content)
-          content = ""
-          concat = false
-        } else {
-          content = content + line + " "
-        }*/
-
       }
     }
-    
     result.toArray
-
   }
 
 
