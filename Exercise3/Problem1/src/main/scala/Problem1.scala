@@ -80,67 +80,71 @@ object Problem1 {
   }
 
   def plotStartsWithQuotationMarks(movie: String): Boolean = {
-
-    var s = movie.substring(movie.indexOf(",")) //Release Year
-    var title = ""
-    if(s.startsWith(",\"")) {
-      s = s.substring(2)
-      title = s.substring(0, s.indexOf("\""))
-      s = s.substring(s.indexOf("\"") + 1)
-    } else {
-      s = s.substring(1)
-      title = s.substring(0, s.indexOf(","))
-      s = s.substring(s.indexOf(","))
-    }
-    //println(s"TITLE: $title")
-    s = s.substring(1) //VIRGOLA
-    //println("ORIGIN: " + s.substring(0, s.indexOf(",")))
-    s = s.substring(s.indexOf(",")) //Origin/Ethnicity
-    //println(s"REST STRING AFTER ORIGIN: $s")
-    var i = 0
-    while (i < 2) { //Director and Cast
+    try {
+      println(s"STRINGA PRIMA DI CONTROLLARE IL PLOT: $movie")
+      var s = movie.substring(movie.indexOf(",")) //Release Year
+      var title = ""
       if(s.startsWith(",\"")) {
         s = s.substring(2)
-        //println("DIRECTOR/CAST: " + s.substring(0, s.indexOf("\"")))
+        title = s.substring(0, s.indexOf("\","))
         s = s.substring(s.indexOf("\",") + 1)
       } else {
         s = s.substring(1)
-        //println("DIRECTOR/CAST: " + s.substring(0, s.indexOf(",")))
+        title = s.substring(0, s.indexOf(","))
         s = s.substring(s.indexOf(","))
       }
-      i = i + 1
-    }
+      //println(s"TITLE: $title")
+      s = s.substring(1) //VIRGOLA
+      //println("ORIGIN: " + s.substring(0, s.indexOf(",")))
+      s = s.substring(s.indexOf(",")) //Origin/Ethnicity
+      //println(s"REST STRING AFTER ORIGIN: $s")
+      var i = 0
+      while (i < 2) { //Director and Cast
+        if(s.startsWith(",\"")) {
+          s = s.substring(2)
+          //println("DIRECTOR/CAST: " + s.substring(0, s.indexOf("\"")))
+          s = s.substring(s.indexOf("\",") + 1)
+        } else {
+          s = s.substring(1)
+          //println("DIRECTOR/CAST: " + s.substring(0, s.indexOf(",")))
+          s = s.substring(s.indexOf(","))
+        }
+        i = i + 1
+      }
 
-    //println(s"STRING AFTER DIRECTOR AND CAST: $s")
-    var genre = ""
-    if(s.startsWith(",\"")) {
-      s = s.substring(2)
-      genre = s.substring(0, s.indexOf("\""))
-      s = s.substring(s.indexOf("\"") + 1)
-    } else {
-      s = s.substring(1)
-      genre = s.substring(0, s.indexOf(","))
+      //println(s"STRING AFTER DIRECTOR AND CAST: $s")
+      var genre = ""
+      if(s.startsWith(",\"")) {
+        s = s.substring(2)
+        genre = s.substring(0, s.indexOf("\""))
+        s = s.substring(s.indexOf("\"") + 1)
+      } else {
+        s = s.substring(1)
+        genre = s.substring(0, s.indexOf(","))
+        s = s.substring(s.indexOf(","))
+      }
+
+      //println(s"GENRE: $genre")
+      //println(s"RESTO DOPO GENRE: $s")
       s = s.substring(s.indexOf(","))
-    }
 
-    //println(s"GENRE: $genre")
-    //println(s"RESTO DOPO GENRE: $s")
-    s = s.substring(s.indexOf(","))
-
-    if(s.startsWith(",\"")) { //Wiki Page
-      s = s.substring(2)
-      //println("WIKIPAGE: " + s.substring(0, s.indexOf("\"")))
-      s = s.substring(s.indexOf("\"") + 1)
-    } else {
+      if(s.startsWith(",\"")) { //Wiki Page
+        s = s.substring(2)
+        //println("WIKIPAGE: " + s.substring(0, s.indexOf("\"")))
+        s = s.substring(s.indexOf("\"") + 1)
+      } else {
+        s = s.substring(1)
+        //println("WIKI PAGE: " + s.substring(0, s.indexOf(",")))
+        s = s.substring(s.indexOf(","))
+      }
       s = s.substring(1)
-      //println("WIKI PAGE: " + s.substring(0, s.indexOf(",")))
-      s = s.substring(s.indexOf(","))
+      println(s"PLOT: $s")
+      val plot = s
+      plot.startsWith("\"") && ((!movie.endsWith("\"") && !movie.endsWith("\"\"\"")) || movie.endsWith("\"\"") || movie.endsWith(",\""))
+    } catch {
+      case e: Exception => true
     }
-    s = s.substring(1)
-    //println(s"PLOT: $s")
-    val plot = s
-    plot.startsWith("\"")
-  }
+   }
 
   def parseLines(lines: RDD[String]): Array[String] = {
     val result = ArrayBuffer.empty[String]
@@ -154,7 +158,8 @@ object Problem1 {
       * 1) il plot inizia con virgoletta e non finisce con virgoletta
       * */
       if(!concat) {
-        concat = plotStartsWithQuotationMarks(line) && ((!line.endsWith("\"") && !line.endsWith("\"\"\"")) || line.endsWith("\"\""))
+        //concat = plotStartsWithQuotationMarks(line) && ((!line.endsWith("\"") && !line.endsWith("\"\"\"")) || line.endsWith("\"\"") || line.endsWith(",\""))
+        concat = plotStartsWithQuotationMarks(line)
         if(concat) {
           content = content + line + " "
         } else {
