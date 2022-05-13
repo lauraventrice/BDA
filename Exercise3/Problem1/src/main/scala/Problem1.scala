@@ -21,7 +21,7 @@ object Problem1 {
       title = s.substring(0, s.indexOf(","))
       s = s.substring(s.indexOf(","))
     }
-    println(s"TITLE: $title")
+    println(s"TITLE: $title  ")
     s = s.substring(1) //VIRGOLA
     //println("ORIGIN: " + s.substring(0, s.indexOf(",")))
     s = s.substring(s.indexOf(",")) //Origin/Ethnicity
@@ -66,7 +66,7 @@ object Problem1 {
       s = s.substring(s.indexOf(",")) 
     }
     s = s.substring(1)      
-    println(s"PLOT: $s")
+    //println(s"PLOT: $s")
     val plot = s
     Row(title, genre, plot)
     
@@ -92,7 +92,7 @@ object Problem1 {
       title = s.substring(0, s.indexOf(","))
       s = s.substring(s.indexOf(","))
     }
-    println(s"TITLE: $title")
+    //println(s"TITLE: $title")
     s = s.substring(1) //VIRGOLA
     //println("ORIGIN: " + s.substring(0, s.indexOf(",")))
     s = s.substring(s.indexOf(",")) //Origin/Ethnicity
@@ -102,7 +102,7 @@ object Problem1 {
       if(s.startsWith(",\"")) {
         s = s.substring(2)
         //println("DIRECTOR/CAST: " + s.substring(0, s.indexOf("\"")))
-        s = s.substring(s.indexOf("\"") + 1)
+        s = s.substring(s.indexOf("\",") + 1)
       } else {
         s = s.substring(1)
         //println("DIRECTOR/CAST: " + s.substring(0, s.indexOf(",")))
@@ -123,7 +123,7 @@ object Problem1 {
       s = s.substring(s.indexOf(","))
     }
 
-    println(s"GENRE: $genre")
+    //println(s"GENRE: $genre")
     //println(s"RESTO DOPO GENRE: $s")
     s = s.substring(s.indexOf(","))
 
@@ -137,7 +137,7 @@ object Problem1 {
       s = s.substring(s.indexOf(","))
     }
     s = s.substring(1)
-    println(s"PLOT: $s")
+    //println(s"PLOT: $s")
     val plot = s
     plot.startsWith("\"")
   }
@@ -146,7 +146,7 @@ object Problem1 {
     val result = ArrayBuffer.empty[String]
     var content = ""
     var linesArray = lines.collect()
-    println(linesArray(0))
+    //println(linesArray(0))
     linesArray = linesArray.slice(0, linesArray.length)
     var concat = false
     for (line <- linesArray) {
@@ -154,18 +154,44 @@ object Problem1 {
       * 1) il plot inizia con virgoletta e non finisce con virgoletta
       * */
       if(!concat) {
-        concat = plotStartsWithQuotationMarks(line) && !line.endsWith("\"")
+        concat = plotStartsWithQuotationMarks(line) && ((!line.endsWith("\"") && !line.endsWith("\"\"\"")) || line.endsWith("\"\""))
         if(concat) {
           content = content + line + " "
         } else {
           content = content.concat(line)
           result.append(content)
-          println("RIGA: " + content)
+          //println("RIGA: " + content)
           content = ""
         }
       } else {
         //si concatena
         if(line.endsWith("\"")) {
+          if(line.endsWith("\"\"")) {
+            if(line.endsWith("\"\"\"")) {
+              //la riga è finita
+              content = content.concat(line)
+              result.append(content)
+              println("RIGA: " + content)
+              content = ""
+              concat = false
+            } else {
+              content = content + line + " "
+              //continuo a concatenare
+            }
+          } else {
+            content = content.concat(line)
+            result.append(content)
+            println("RIGA: " + content)
+            content = ""
+            concat = false
+            //la riga è finita 
+          }
+        } else {
+          content = content + line + " "
+          //continuo a concatenare
+        }
+        /*
+        if(line.endsWith("\"") || (line.endsWith("\"\"\"") && !line.endsWith("\"\""))) {
           content = content.concat(line)
           result.append(content)
           println("RIGA: " + content)
@@ -173,7 +199,7 @@ object Problem1 {
           concat = false
         } else {
           content = content + line + " "
-        }
+        }*/
 
       }
     }
@@ -208,7 +234,7 @@ object Problem1 {
 
       df.cache()
     } else {
-      val rawMovies = sc.textFile("./Try_parsing.csv", 1)
+      val rawMovies = sc.textFile("./wiki_movie_plots_deduped.csv", 1)
       val parsedLines = parseLines(rawMovies)
 
       val rawMoviesLines = sc.parallelize(parsedLines)
