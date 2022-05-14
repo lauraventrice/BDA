@@ -8,7 +8,7 @@ import scala.collection.mutable._
 object Problem1 {
 
   // ------------------------ Parse the Wikipedia Movie Data ----------------------
-/*
+
   def parseLine(line: String): Row = {
     
     var s = line.substring(line.indexOf(",")) //Release Year 
@@ -196,7 +196,29 @@ object Problem1 {
       }
     }
     result.toArray
-  }*/
+  }
+
+  def prova(lines: RDD[String]): ArrayBuffer[String] ={
+    val a = lines.filter(elem => {
+      elem.length >= 4 && elem(0).isDigit && elem(1).isDigit && elem(2).isDigit && elem(3).isDigit && (elem.length > 4 && elem(4).equals(','))
+    })
+    val b = a.collect()
+    val c = lines.collect()
+    var i = 0
+    val rows: ArrayBuffer[String] = ArrayBuffer.empty
+    var kk = true
+    while(i < c.length){
+      var row = c(i)
+      while(kk && !b.contains(c(i+1))){
+        row += c(i+1)
+        i = i+1
+        if(i.equals(c.length-2)) kk = false
+      }
+      rows.append(row)
+      i = i+1
+    }
+    rows
+  }
 
 
   def main(args: Array[String]): Unit = {
@@ -204,6 +226,7 @@ object Problem1 {
     val filePath = "./dataFrame"
     val sparkConf = new SparkConf().setAppName("Problem1")
     val sc = new SparkContext(sparkConf)
+    sc.setLogLevel("ERROR")
 
     val spark = org.apache.spark.sql.SparkSession.builder
       .master("local")
@@ -217,35 +240,40 @@ object Problem1 {
       .map(fieldName => StructField(fieldName, dataType = StringType, nullable = true))
 
     val schema = StructType(fields)
+    /*
+        if (new java.io.File(filePath).exists){ //Check if we saved the file yet
+          df = spark.read.option("header",value = true).schema(schema)
+            .csv(filePath)
 
-    if (new java.io.File(filePath).exists){ //Check if we saved the file yet
-      df = spark.read.option("header",value = true).schema(schema)
-        .csv(filePath)
+          df.cache()
+        } else {
 
-      df.cache()
-    } else {
-
-      df = spark.read.option("header",value = true)
-        .option("multiLine", value = true)
-        .option("inferSchema", value = true)
-        .option("quote", "\"")
-        .option("escape", "\"")
-        .csv("./Try_parsing.csv")
+          df = spark.read.option("header",value = true)
+            .option("multiLine", value = true)
+            .option("inferSchema", value = true)
+            .option("quote", "\"")
+            .option("escape", "\"")
+            .csv("./Try_parsing.csv")
 
 
+     */
 
-      //val rawMovies = sc.textFile("./wiki_movie_plots_deduped.csv", 1)
-      //val parsedLines = parseLines(rawMovies)
 
-      //val rawMoviesLines = sc.parallelize(parsedLines)
-      //val parsedMovies = parse(rawMoviesLines)
+      val rawMovies = sc.textFile("./wiki_movie_plots_deduped.csv", 1)
+      sc.parallelize(prova(rawMovies)).repartition(1).saveAsTextFile("a")
 
-      //df = spark.createDataFrame(parsedMovies, schema)
+      val parsedLines = prova(rawMovies)
+
+      val rawMoviesLines = sc.parallelize(parsedLines)
+      val parsedMovies = parse(rawMoviesLines)
+
+      df = spark.createDataFrame(parsedMovies, schema)
 
       df.cache()
 
       df.repartition(1).write.option("header",value = true).csv(filePath)
-    }
+
+    //}
     /*
     //(b)
 
