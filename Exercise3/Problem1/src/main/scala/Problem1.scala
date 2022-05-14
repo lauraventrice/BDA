@@ -23,25 +23,20 @@ object Problem1 {
       s = s.substring(s.indexOf(","))
     }
     println(s"TITLE: $title  ")
-    s = s.substring(1) //VIRGOLA
-    //println("ORIGIN: " + s.substring(0, s.indexOf(",")))
+    s = s.substring(1)
     s = s.substring(s.indexOf(",")) //Origin/Ethnicity
-    //println(s"REST STRING AFTER ORIGIN: $s")
     var i = 0
     while (i < 2) { //Director and Cast
       if(s.startsWith(",\"")) {
         s = s.substring(2)
-        //println("DIRECTOR/CAST: " + s.substring(0, s.indexOf("\"")))
         s = s.substring(s.indexOf("\",") + 1)
       } else {
         s = s.substring(1)
-        //println("DIRECTOR/CAST: " + s.substring(0, s.indexOf(",")))
         s = s.substring(s.indexOf(","))
       }
       i = i + 1
     }    
-     
-    //println(s"STRING AFTER DIRECTOR AND CAST: $s")
+
     var genre = ""
     if(s.startsWith(",\"")) {
       s = s.substring(2)
@@ -54,20 +49,16 @@ object Problem1 {
     }
       
     println(s"GENRE: $genre")
-    //println(s"RESTO DOPO GENRE: $s")
     s = s.substring(s.indexOf(","))
 
     if(s.startsWith(",\"")) { //Wiki Page
       s = s.substring(2)
-      //println("WIKIPAGE: " + s.substring(0, s.indexOf("\"")))
       s = s.substring(s.indexOf("\"") + 1)
     } else {
       s = s.substring(1)
-      //println("WIKI PAGE: " + s.substring(0, s.indexOf(",")))
       s = s.substring(s.indexOf(",")) 
     }
-    s = s.substring(1)      
-    //println(s"PLOT: $s")
+    s = s.substring(1)
     val plot = s
     Row(title, genre, plot)
     
@@ -79,126 +70,7 @@ object Problem1 {
       }
   }
 
-  def isToConcat(movie: String): Boolean = {
-    try {
-      println(s"STRINGA PRIMA DI CONTROLLARE IL PLOT: $movie")
-      var s = movie.substring(movie.indexOf(",")) //Release Year
-      var title = ""
-      if(s.startsWith(",\"")) {
-        s = s.substring(2)
-        title = s.substring(0, s.indexOf("\","))
-        s = s.substring(s.indexOf("\",") + 1)
-      } else {
-        s = s.substring(1)
-        title = s.substring(0, s.indexOf(","))
-        s = s.substring(s.indexOf(","))
-      }
-      //println(s"TITLE: $title")
-      s = s.substring(1) //VIRGOLA
-      //println("ORIGIN: " + s.substring(0, s.indexOf(",")))
-      s = s.substring(s.indexOf(",")) //Origin/Ethnicity
-      //println(s"REST STRING AFTER ORIGIN: $s")
-      var i = 0
-      while (i < 2) { //Director and Cast
-        if(s.startsWith(",\"")) {
-          s = s.substring(2)
-          //println("DIRECTOR/CAST: " + s.substring(0, s.indexOf("\"")))
-          s = s.substring(s.indexOf("\",") + 1)
-        } else {
-          s = s.substring(1)
-          //println("DIRECTOR/CAST: " + s.substring(0, s.indexOf(",")))
-          s = s.substring(s.indexOf(","))
-        }
-        i = i + 1
-      }
-
-      //println(s"STRING AFTER DIRECTOR AND CAST: $s")
-      var genre = ""
-      if(s.startsWith(",\"")) {
-        s = s.substring(2)
-        genre = s.substring(0, s.indexOf("\""))
-        s = s.substring(s.indexOf("\"") + 1)
-      } else {
-        s = s.substring(1)
-        genre = s.substring(0, s.indexOf(","))
-        s = s.substring(s.indexOf(","))
-      }
-
-      //println(s"GENRE: $genre")
-      //println(s"RESTO DOPO GENRE: $s")
-      s = s.substring(s.indexOf(","))
-
-      if(s.startsWith(",\"")) { //Wiki Page
-        s = s.substring(2)
-        //println("WIKIPAGE: " + s.substring(0, s.indexOf("\"")))
-        s = s.substring(s.indexOf("\"") + 1)
-      } else {
-        s = s.substring(1)
-        //println("WIKI PAGE: " + s.substring(0, s.indexOf(",")))
-        s = s.substring(s.indexOf(","))
-      }
-      s = s.substring(1)
-      println(s"PLOT: $s")
-      val plot = s
-      plot.startsWith("\"") && ((!movie.endsWith("\"") && !movie.endsWith("\"\"\"")) || movie.endsWith("\"\"") || movie.endsWith(",\""))
-    } catch {
-      case e: Exception => true
-    }
-   }
-
-  def parseLines(lines: RDD[String]): Array[String] = {
-    val result = ArrayBuffer.empty[String]
-    var content = ""
-    var linesArray = lines.collect()
-    //println(linesArray(0))
-    linesArray = linesArray.slice(0, linesArray.length)
-    var concat = false
-    for (line <- linesArray) {
-      /* quando bisogna concatenare? due casi condizioni insieme
-      * 1) il plot inizia con virgoletta e non finisce con virgoletta
-      * */
-      if(!concat) {
-       if(isToConcat(line)) {
-          content = content + line + " "
-        } else {
-          content = content.concat(line)
-          result.append(content)
-          //println("RIGA: " + content)
-          content = ""
-        }
-      } else {
-        //si concatena
-        if(line.endsWith("\"")) {
-          if(line.endsWith("\"\"")) {
-            if(line.endsWith("\"\"\"")) {
-              //la riga è finita
-              content = content.concat(line)
-              result.append(content)
-              println("RIGA: " + content)
-              content = ""
-              concat = false
-            } else {
-              content = content + line + " "
-              //continuo a concatenare
-            }
-          } else {
-            content = content.concat(line)
-            result.append(content)
-            println("RIGA: " + content)
-            content = ""
-            concat = false
-            //la riga è finita 
-          }
-        } else {
-          content = content + line + " "
-          //continuo a concatenare
-        }
-      }
-    }
-    result.toArray
-  }
-
-  def prova(lines: RDD[String]): ArrayBuffer[String] ={
+  def cleanCSV(lines: RDD[String]): ArrayBuffer[String] ={
     val a = lines.filter(elem => {
       elem.length >= 4 && elem(0).isDigit && elem(1).isDigit && elem(2).isDigit && elem(3).isDigit && (elem.length > 4 && elem(4).equals(','))
     })
@@ -240,40 +112,22 @@ object Problem1 {
       .map(fieldName => StructField(fieldName, dataType = StringType, nullable = true))
 
     val schema = StructType(fields)
-    /*
-        if (new java.io.File(filePath).exists){ //Check if we saved the file yet
-          df = spark.read.option("header",value = true).schema(schema)
-            .csv(filePath)
-
-          df.cache()
-        } else {
-
-          df = spark.read.option("header",value = true)
-            .option("multiLine", value = true)
-            .option("inferSchema", value = true)
-            .option("quote", "\"")
-            .option("escape", "\"")
-            .csv("./Try_parsing.csv")
-
-
-     */
-
-
+    if (new java.io.File(filePath).exists){ //Check if we saved the file yet
+      df = spark.read.option("header",value = true).schema(schema)
+        .csv(filePath)
+      df.cache()
+    } else {
       val rawMovies = sc.textFile("./wiki_movie_plots_deduped.csv", 1)
-      sc.parallelize(prova(rawMovies)).repartition(1).saveAsTextFile("a")
-
-      val parsedLines = prova(rawMovies)
-
+      sc.parallelize(cleanCSV(rawMovies)).repartition(1).saveAsTextFile("a")
+      val parsedLines = cleanCSV(rawMovies)
       val rawMoviesLines = sc.parallelize(parsedLines)
       val parsedMovies = parse(rawMoviesLines)
 
       df = spark.createDataFrame(parsedMovies, schema)
-
       df.cache()
 
       df.repartition(1).write.option("header",value = true).csv(filePath)
-
-    //}
+    }
     /*
     //(b)
 
