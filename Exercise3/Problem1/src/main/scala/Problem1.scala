@@ -8,7 +8,7 @@ import scala.collection.mutable._
 object Problem1 {
 
   // ------------------------ Parse the Wikipedia Movie Data ----------------------
-
+/*
   def parseLine(line: String): Row = {
     
     var s = line.substring(line.indexOf(",")) //Release Year 
@@ -196,7 +196,7 @@ object Problem1 {
       }
     }
     result.toArray
-  }
+  }*/
 
 
   def main(args: Array[String]): Unit = {
@@ -224,13 +224,22 @@ object Problem1 {
 
       df.cache()
     } else {
-      val rawMovies = sc.textFile("./wiki_movie_plots_deduped.csv", 1)
-      val parsedLines = parseLines(rawMovies)
 
-      val rawMoviesLines = sc.parallelize(parsedLines)
-      val parsedMovies = parse(rawMoviesLines)
+      df = spark.read.option("header",value = true)
+        .option("delimiter", value = ",")
+        .option("multiLine", value = true)
+        .option("inferSchema", value = true)
+        .csv("./wiki_movie_plots_deduped.csv")
 
-      df = spark.createDataFrame(parsedMovies, schema)
+
+
+      //val rawMovies = sc.textFile("./wiki_movie_plots_deduped.csv", 1)
+      //val parsedLines = parseLines(rawMovies)
+
+      //val rawMoviesLines = sc.parallelize(parsedLines)
+      //val parsedMovies = parse(rawMoviesLines)
+
+      //df = spark.createDataFrame(parsedMovies, schema)
 
       df.cache()
 
