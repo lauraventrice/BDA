@@ -226,10 +226,11 @@ object Problem1 {
     } else {
 
       df = spark.read.option("header",value = true)
-        .option("delimiter", value = ",")
         .option("multiLine", value = true)
         .option("inferSchema", value = true)
-        .csv("./wiki_movie_plots_deduped.csv")
+        .option("quote", "\"")
+        .option("escape", "\"")
+        .csv("./Try_parsing.csv")
 
 
 
