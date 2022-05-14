@@ -158,15 +158,22 @@ object Problem1 {
       pipeline.annotate(doc)
       val lemmas = new ArrayBuffer[String]()
       val sentences = doc.get(classOf[SentencesAnnotation])
-      for (
-        sentence <- sentences;
-        token <- sentence.get(classOf[TokensAnnotation])
-      ) {
-        val lemma = token.get(classOf[LemmaAnnotation]).toLowerCase
-        if (lemma.length > 2 && !bStopWords.value.contains(lemma)
-          && isOnlyLetters(lemma)) {
-          lemmas += lemma
+      var i = 0
+      val lengthSent = sentences.size()
+      while(i < lengthSent) {
+        val sentence = sentences.get(i)
+        val tokens = sentence.get(classOf[TokensAnnotation])
+        var j = 0
+        val lengthTok = tokens.size()
+        while(j < lengthTok) {
+          val token = tokens.get(j)
+          val lemma = token.get(classOf[LemmaAnnotation]).toLowerCase
+          if (lemma.length > 2 && !bStopWords.value.contains(lemma) && isOnlyLetters(lemma)) {
+            lemmas += lemma
+          }
+          j += 1
         }
+        i += 1
       }
       lemmas
     }
@@ -176,6 +183,7 @@ object Problem1 {
     val lemmatized = df.withColumn("features", expr("plainTextToLemmas(plot, pipeline)")) //CONTROLLA SE FUNZIONA!
 
     lemmatized.repartition(1).write.option("header",value = true).csv("result_lemmatized")
+    
     /*val lemmatized =
       df.mapPartitions(it => {
         val pipeline = createNLPPipeline()
