@@ -1,9 +1,15 @@
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.functions.{expr}
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.mutable._
+import scala.io.Source._
+import java.util.Properties
+import edu.stanford.nlp.pipeline._
+import edu.stanford.nlp.ling.CoreAnnotations._
+
 
 object Problem1 {
 
@@ -128,88 +134,85 @@ object Problem1 {
 
       df.repartition(1).write.option("header",value = true).csv(filePath)
     }
+
     /*
-    //(b)
+    (b) Next, add an additional column called features to your DataFrame, which contains a list of lemmatized
+      text tokens extracted from each of the plot fields using the NLP-based plainTextToLemmas
+      function of the given shell script.
+     */
 
-    val trainData= df.filter("year <= 2021")
-    val testData = df.filter("year > 2021")
-
-    trainData.cache()
-    testData.cache()
-
-    val columns = schemaString.split(" ")
-    val features = columns.filterNot(column => column.equals("airTemperature"))
-
-    val vector = new VectorAssembler()
-      .setInputCols(features)
-      .setOutputCol("features")
-
-    val standardScalar = new StandardScaler()
-      .setInputCol("features")
-      .setOutputCol("scaledFeatures")
-
-    val forest = new RandomForestRegressor()
-      .setNumTrees(10)
-      .setLabelCol("airTemperature")
-      .setFeaturesCol("scaledFeatures")
-      .setFeatureSubsetStrategy("auto")
-
-    val stagesForest = Array(vector, standardScalar, forest)
-    val pipelineForest = new Pipeline().setStages(stagesForest)
-
-    val paramForest = new ParamGridBuilder()
-      .addGrid(forest.maxDepth, Array(5, 10, 15))
-      .addGrid(forest.maxBins, Array(20, 50, 100))
-      .build()
-
-    val optimizedForest = new CrossValidator()
-      .setEstimator(pipelineForest)
-      .setEvaluator(new RegressionEvaluator().setLabelCol("airTemperature").setPredictionCol("prediction"))
-      .setEstimatorParamMaps(paramForest)
-      .setNumFolds(5)
-      .setParallelism(2)
-
-    val optimizedModel = optimizedForest.fit(trainData)
-
-    val predictionAndLabels = optimizedModel.transform(testData)
-      .select("airTemperature", "prediction")
-      .rdd.map(row => (row.getDouble(0), row.getDouble(1)))
-
-    val rawTestData2 = sc.textFile("./testData2") //New test data
-    val rddRowData = parseNOAA(rawTestData2)
-
-    val anotherTestData = spark.createDataFrame(rddRowData, schema)
-
-    val predictionAndLabelsAnother = optimizedModel
-      .transform(anotherTestData)
-      .select("day", "prediction")
-      .rdd.map(row => (row.getInt(0), row.getDouble(1)))
-
-    //(c)
-    val testMSE = predictionAndLabels.map{ case (v, p) => math.pow(v - p, 2) }.mean()
-    println(s"Test Mean Squared Error = $testMSE")
-
-    //(d)
-
-    val seriesX: RDD[Double] = df.select("airTemperature").rdd.map(row => row.getDouble(0))
-
-    var highestCorrelation = (0.0, "")
-
-    for(feature <- features) {
-      val field = df.select(feature).rdd.map(row =>
-        if(intField contains feature) row.getInt(0).toDouble
-        else row.getDouble(0))
-
-      val correlation = Statistics.corr(seriesX, field, "spearman")
-      if(correlation > highestCorrelation._1)
-        highestCorrelation = (correlation, feature)
-      println("#############################################################################################################################")
-      println(s"Correlation is: $correlation with $feature data")
-
+    def isOnlyLetters(str: String): Boolean = {
+      str.forall(c => Character.isLetter(c))
     }
 
-    println(s"Highest Correlation is: $highestCorrelation")
+    val bStopWords = sc.broadcast(fromFile("../Data/stopwords.txt").getLines().toSet)
 
-*/
+    def createNLPPipeline(): StanfordCoreNLP = {
+      val props = new Properties()
+      props.put("annotators", "tokenize, ssplit, pos, lemma")
+      new StanfordCoreNLP(props)
+    }
+
+    def plainTextToLemmas(text: String, pipeline: StanfordCoreNLP): Seq[String] = {
+      val doc = new Annotation(text)
+      pipeline.annotate(doc)
+      val lemmas = new ArrayBuffer[String]()
+      val sentences = doc.get(classOf[SentencesAnnotation])
+      for (
+        sentence <- sentences;
+        token <- sentence.get(classOf[TokensAnnotation])
+      ) {
+        val lemma = token.get(classOf[LemmaAnnotation]).toLowerCase
+        if (lemma.length > 2 && !bStopWords.value.contains(lemma)
+          && isOnlyLetters(lemma)) {
+          lemmas += lemma
+        }
+      }
+      lemmas
+    }
+
+    val pipeline = createNLPPipeline()
+
+    val lemmatized = df.withColumn("features", expr("plainTextToLemmas(plot, pipeline)")) //CONTROLLA SE FUNZIONA!
+
+    lemmatized.repartition(1).write.option("header",value = true).csv("result_lemmatized")
+    /*val lemmatized =
+      df.mapPartitions(it => {
+        val pipeline = createNLPPipeline()
+        val res = it.map ( row => {
+            (row.getString(0), row.getString(1), row.getString(2), plainTextToLemmas(row.getString(2), pipeline))
+        })
+        res
+      })*/
+
+
+    /*
+
+        //(c)
+        val testMSE = predictionAndLabels.map{ case (v, p) => math.pow(v - p, 2) }.mean()
+        println(s"Test Mean Squared Error = $testMSE")
+
+        //(d)
+
+        val seriesX: RDD[Double] = df.select("airTemperature").rdd.map(row => row.getDouble(0))
+
+        var highestCorrelation = (0.0, "")
+
+        for(feature <- features) {
+          val field = df.select(feature).rdd.map(row =>
+            if(intField contains feature) row.getInt(0).toDouble
+            else row.getDouble(0))
+
+          val correlation = Statistics.corr(seriesX, field, "spearman")
+          if(correlation > highestCorrelation._1)
+            highestCorrelation = (correlation, feature)
+          println("#############################################################################################################################")
+          println(s"Correlation is: $correlation with $feature data")
+
+        }
+
+        println(s"Highest Correlation is: $highestCorrelation")
+
+    */
   }
 }
