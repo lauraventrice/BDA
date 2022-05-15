@@ -9,14 +9,20 @@ import java.util.Properties
 import edu.stanford.nlp.pipeline._
 import edu.stanford.nlp.ling.CoreAnnotations._
 
+import org.apache.spark.mllib.linalg.Vectors
+import org.apache.spark.mllib.linalg.Matrix
+import org.apache.spark.mllib.linalg.SingularValueDecomposition
+
+import org.apache.spark.mllib.linalg.distributed.RowMatrix
+
 
 object Problem1 {
 
   // ------------------------ Parse the Wikipedia Movie Data ----------------------
 
   def parseLine(line: String): Row = {
-    
-    var s = line.substring(line.indexOf(",")) //Release Year 
+
+    var s = line.substring(line.indexOf(",")) //Release Year
     var title = ""
     if(s.startsWith(",\"")) {
       s = s.substring(2)
@@ -40,7 +46,7 @@ object Problem1 {
         s = s.substring(s.indexOf(","))
       }
       i = i + 1
-    }    
+    }
 
     var genre = ""
     if(s.startsWith(",\"")) {
@@ -52,7 +58,7 @@ object Problem1 {
       genre = s.substring(0, s.indexOf(","))
       s = s.substring(s.indexOf(","))
     }
-      
+
     println(s"GENRE: $genre")
     s = s.substring(s.indexOf(","))
 
@@ -61,18 +67,18 @@ object Problem1 {
       s = s.substring(s.indexOf("\"") + 1)
     } else {
       s = s.substring(1)
-      s = s.substring(s.indexOf(",")) 
+      s = s.substring(s.indexOf(","))
     }
     s = s.substring(1)
     val plot = s
     Row(title, genre, plot)
-    
+
   }
 
   def parse(lines: RDD[String]): RDD[Row] = {
     lines.map { line =>
-        parseLine(line)
-      }
+      parseLine(line)
+    }
   }
 
   def cleanCSV(lines: RDD[String]): ArrayBuffer[String] ={
@@ -133,7 +139,8 @@ object Problem1 {
 
       df.repartition(1).write.option("header",value = true).csv(filePath)
     }
-
+    val numDocs = df.count()
+    print("il numero di articoli è " + numDocs)
     /*
     (b) Next, add an additional column called features to your DataFrame, which contains a list of lemmatized
       text tokens extracted from each of the plot fields using the NLP-based plainTextToLemmas
@@ -144,7 +151,7 @@ object Problem1 {
       str.forall(c => Character.isLetter(c))
     }
 
-    val bStopWords = sc.broadcast(fromFile("./stopwords.txt").getLines().toSet)
+    val bStopWords = sc.broadcast(fromFile("../Data/stopwords.txt").getLines().toSet)
 
     def createNLPPipeline(): StanfordCoreNLP = {
       val props = new Properties()
@@ -182,7 +189,7 @@ object Problem1 {
       rddMovies.mapPartitions(it => {
         val pipeline = createNLPPipeline()
         val res = it.map ( row => {
-            Row(row.getString(0), row.getString(1), row.getString(2), plainTextToLemmas(row.getString(2), pipeline).toArray.mkString(","))
+          Row(row.getString(0), row.getString(1), row.getString(2), plainTextToLemmas(row.getString(2), pipeline).toArray.mkString(","))
         })
         res
       })
@@ -199,13 +206,62 @@ object Problem1 {
 
     df.repartition(1).write.option("header",value = true).csv("./WITHLEMMAS")
 
+    /*
+    (d) Compute an SVD decomposition of the 134,164 movie plots contained in your DataFrame by using the following two basic parameters:
+      – numFreq = 5000 for the number of frequent terms extracted from all Wikipedia articles, and
+      – k = 25 for the number of latent dimensions used for the SVD.
+     */
+    val moviesTermFreqs = lemmatized.map (movie => {
+      val termFreqs = movie.getString(3).split(',').toSeq.foldLeft(new HashMap[String, Int]()) {
+        (map, term) => {
+          map += term -> (map.getOrElse(term, 0) + 1)
+          map
+        }
+      }
+      termFreqs
+    })
+    moviesTermFreqs.cache()
+    moviesTermFreqs.count()
+    println("MOVIES TERM FREQS: ")
+    moviesTermFreqs.foreach(println)
+    /*
+    val moviesIds = moviesTermFreqs.map(_.keySet).zipWithUniqueId().map(_.swap).collectAsMap()
+    //In order to reduce the term space we filter out infrequent items
+    val moviesFreqs = moviesTermFreqs.flatMap(_.keySet).map((_, 1)).
+      reduceByKey(_ + _, 24) //less than 24
+
+    val ordering = Ordering.by[(String, Int), Int](_._2)
+    val topDocFreqs = moviesFreqs.top(5000)(ordering)
+
+    val idfs = topDocFreqs.map {
+      case (term, count) =>
+        (term, math.log(numDocs.toDouble / count))
+    }.toMap
+
+    val idTerms = idfs.keys.zipWithIndex.toMap
+
+    val bIdfs = sc.broadcast(idfs).value
+    val bIdTerms = sc.broadcast(idTerms).value
+
+    val vecs = moviesTermFreqs.map(termFreqs => {
+      val docTotalTerms = termFreqs.values.sum
+      val termScores = termFreqs.filter {
+        case (term, _) => bIdTerms.contains(term)
+      }.map {
+        case (term, _) => (bIdTerms(term), bIdfs(term) * termFreqs(term) / docTotalTerms)
+      }.toSeq
+      Vectors.sparse(bIdTerms.size, termScores)
+    })
+
+    vecs.cache()
+    vecs.count()
+
+    val mat = new RowMatrix(vecs)
+    val svd = mat.computeSVD(25, computeU = true)
+
+    print(svd.toString)*/
 
     /*
-
-        //(c)
-        val testMSE = predictionAndLabels.map{ case (v, p) => math.pow(v - p, 2) }.mean()
-        println(s"Test Mean Squared Error = $testMSE")
-
         //(d)
 
         val seriesX: RDD[Double] = df.select("airTemperature").rdd.map(row => row.getDouble(0))
