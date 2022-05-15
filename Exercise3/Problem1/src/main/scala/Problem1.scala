@@ -144,7 +144,7 @@ object Problem1 {
       str.forall(c => Character.isLetter(c))
     }
 
-    val bStopWords = sc.broadcast(fromFile("../Data/stopwords.txt").getLines().toSet)
+    val bStopWords = sc.broadcast(fromFile("./stopwords.txt").getLines().toSet)
 
     def createNLPPipeline(): StanfordCoreNLP = {
       val props = new Properties()
@@ -182,7 +182,7 @@ object Problem1 {
       rddMovies.mapPartitions(it => {
         val pipeline = createNLPPipeline()
         val res = it.map ( row => {
-            Row(row.getString(0), row.getString(1), row.getString(2), plainTextToLemmas(row.getString(2), pipeline))
+            Row(row.getString(0), row.getString(1), row.getString(2), plainTextToLemmas(row.getString(2), pipeline).toArray.mkString(","))
         })
         res
       })
