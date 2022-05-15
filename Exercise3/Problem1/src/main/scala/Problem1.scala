@@ -1,5 +1,4 @@
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.functions.{expr}
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.{SparkConf, SparkContext}
@@ -112,12 +111,12 @@ object Problem1 {
       .getOrCreate
 
     var df : DataFrame = spark.emptyDataFrame
-    val schemaString = "title genre plot"
+    var schemaString = "title genre plot"
 
-    val fields = schemaString.split(" ")
+    var fields = schemaString.split(" ")
       .map(fieldName => StructField(fieldName, dataType = StringType, nullable = true))
 
-    val schema = StructType(fields)
+    var schema = StructType(fields)
     if (new java.io.File(filePath).exists){ //Check if we saved the file yet
       df = spark.read.option("header",value = true).schema(schema)
         .csv(filePath)
@@ -149,7 +148,7 @@ object Problem1 {
 
     def createNLPPipeline(): StanfordCoreNLP = {
       val props = new Properties()
-      props.put("annotators", "tokenize, ssplit, pos, lemma")
+      props.setProperty("annotators", "tokenize, ssplit, pos, lemma")
       new StanfordCoreNLP(props)
     }
 
@@ -177,21 +176,28 @@ object Problem1 {
       }
       lemmas
     }
+    val rddMovies = df.rdd
 
-    val pipeline = createNLPPipeline()
-
-    val lemmatized = df.withColumn("features", expr("plainTextToLemmas(plot, pipeline)")) //CONTROLLA SE FUNZIONA!
-
-    lemmatized.repartition(1).write.option("header",value = true).csv("result_lemmatized")
-    
-    /*val lemmatized =
-      df.mapPartitions(it => {
+    val lemmatized: RDD[Row]=
+      rddMovies.mapPartitions(it => {
         val pipeline = createNLPPipeline()
         val res = it.map ( row => {
-            (row.getString(0), row.getString(1), row.getString(2), plainTextToLemmas(row.getString(2), pipeline))
+            Row(row.getString(0), row.getString(1), row.getString(2), plainTextToLemmas(row.getString(2), pipeline))
         })
         res
-      })*/
+      })
+
+    schemaString = "title genre plot features"
+
+    fields = schemaString.split(" ")
+      .map(fieldName => StructField(fieldName, dataType = StringType, nullable = true))
+
+    schema = StructType(fields)
+
+    df = spark.createDataFrame(lemmatized, schema)
+
+
+    df.repartition(1).write.option("header",value = true).csv("./WITHLEMMAS")
 
 
     /*
