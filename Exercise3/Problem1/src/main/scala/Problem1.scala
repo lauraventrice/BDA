@@ -215,6 +215,7 @@ object Problem1 {
       – numFreq = 5000 for the number of frequent terms extracted from all Wikipedia articles, and
       – k = 25 for the number of latent dimensions used for the SVD.
      */
+    val k = 25
     val moviesTermFreqs = lemmatized.map (movie => {
       val termFreqs = movie.getString(3).split(',').toSeq.foldLeft(new HashMap[String, Int]()) {
         (map, term) => {
@@ -222,23 +223,23 @@ object Problem1 {
           map
         }
       }
-      termFreqs
+      ((movie.getString(0), movie.getString(1)), termFreqs)
     })
     moviesTermFreqs.cache()
     moviesTermFreqs.count()
     println("MOVIES TERM FREQS: ")
-    moviesTermFreqs.foreach(println)
+    moviesTermFreqs.foreach(x => println(x._2))
 
 
-    val moviesIds = moviesTermFreqs.zipWithUniqueId().map(_.swap).collectAsMap()
+    val moviesIds = moviesTermFreqs.map(_._1).zipWithUniqueId().map(_.swap).collectAsMap()
     //In order to reduce the term space we filter out infrequent items
-    val moviesFreqs = moviesTermFreqs.flatMap(_.keySet).map((_, 1)).
-      reduceByKey(_ + _, 24) //less than 24
+    val termsFreqs = moviesTermFreqs.map(_._2).flatMap(_.keySet).map((_, 1)).
+      reduceByKey(_ + _, 25) //less than 25
 
-    val ordering = Ordering.by[(String, Int), Int](_._2)
-    val topDocFreqs = moviesFreqs.top(5000)(ordering)
+    val ordering = Ordering.by[((String), Int), Int](_._2)
+    val topTermsFreqs = termsFreqs.top(5000)(ordering)
 
-    val idfs = topDocFreqs.map {
+    val idfs = topTermsFreqs.map {
       case (term, count) =>
         (term, math.log(numDocs.toDouble / count))
     }.toMap
@@ -249,12 +250,12 @@ object Problem1 {
     val bIdfs = sc.broadcast(idfs).value
     val bIdTerms = sc.broadcast(idTerms).value
 
-    val vecs = moviesTermFreqs.map(termFreqs => {
-      val docTotalTerms = termFreqs.values.sum
+    val vecs = moviesTermFreqs.map(_._2).map(termFreqs => {
+      val plotTotalTerms = termFreqs.values.sum
       val termScores = termFreqs.filter {
         case (term, _) => bIdTerms.contains(term)
       }.map {
-        case (term, _) => (bIdTerms(term), bIdfs(term) * termFreqs(term) / docTotalTerms)
+        case (term, _) => (bIdTerms(term), bIdfs(term) * termFreqs(term) / plotTotalTerms)
       }.toSeq
       Vectors.sparse(bIdTerms.size, termScores)
     })
@@ -263,7 +264,7 @@ object Problem1 {
     vecs.count()
 
     val mat = new RowMatrix(vecs)
-    val svd = mat.computeSVD(25, computeU = true)
+    val svd = mat.computeSVD(k, computeU = true)
 
     print(svd.toString)
 
@@ -308,8 +309,8 @@ object Problem1 {
       topDocs
     }
 
-    val topConceptTerms = topTermsInTopConcepts(svd, 12, 12)
-    val topConceptDocs = topDocsInTopConcepts(svd, 12, 12)
+    val topConceptTerms = topTermsInTopConcepts(svd, 12, 25)
+    val topConceptDocs = topDocsInTopConcepts(svd, 12, 25)
     for ((terms, docs) <- topConceptTerms.zip(topConceptDocs)) {
       println("Concept terms: " + terms.map(_._1).mkString(", "))
       println("Concept docs: " + docs.map(_._1).mkString(", "))
