@@ -297,9 +297,9 @@ object Problem1 {
     }
 
     def topDocsInTopConcepts(svd: SingularValueDecomposition[RowMatrix, Matrix],
-                              numConcepts: Int, numDocs: Int): Seq[Seq[(String, Double)]] = { //DA MODIFICARE!!!!
+                              numConcepts: Int, numDocs: Int): Seq[Seq[((String, String), Double)]] = { //DA MODIFICARE!!!!
       val u = svd.U
-      val topDocs = new ArrayBuffer[Seq[(String, Double)]]()
+      val topDocs = new ArrayBuffer[Seq[((String, String), Double)]]()
       for (i <- 0 until numConcepts) {
         val docWeights = u.rows.map(_.toArray(i)).zipWithUniqueId()
         topDocs += docWeights.top(numDocs).map {
@@ -327,7 +327,7 @@ object Problem1 {
       Finally, think of 5–10 interesting keyword queries for movies and report their results.
      */
 
-
+/*
     def termsToQueryVector(terms: scala.collection.immutable.Seq[String],
                             idTerms: scala.collection.immutable.Map[String, Int],
                             idfs: scala.collection.immutable.Map[String, Double]): BSparseVector[Double] = {
@@ -363,6 +363,6 @@ object Problem1 {
 
     val queryVec = termsToQueryVector(terms, idTerms, idfs)
     topDocsForTermQuery(US, svd.V, queryVec)
-
+*/
   }
 }
