@@ -15,6 +15,10 @@ import org.apache.spark.mllib.linalg.SingularValueDecomposition
 
 import org.apache.spark.mllib.linalg.distributed.RowMatrix
 
+import breeze.linalg.{DenseMatrix => BDenseMatrix, SparseVector => BSparseVector}
+import org.apache.spark.mllib.linalg.{Matrices, Matrix, SingularValueDecomposition, Vectors, Vector => MLLibVector}
+
+
 
 object Problem1 {
 
@@ -151,7 +155,7 @@ object Problem1 {
       str.forall(c => Character.isLetter(c))
     }
 
-    val bStopWords = sc.broadcast(fromFile("../Data/stopwords.txt").getLines().toSet)
+    val bStopWords = sc.broadcast(fromFile("./stopwords.txt").getLines().toSet)
 
     def createNLPPipeline(): StanfordCoreNLP = {
       val props = new Properties()
@@ -224,8 +228,9 @@ object Problem1 {
     moviesTermFreqs.count()
     println("MOVIES TERM FREQS: ")
     moviesTermFreqs.foreach(println)
-    /*
-    val moviesIds = moviesTermFreqs.map(_.keySet).zipWithUniqueId().map(_.swap).collectAsMap()
+
+
+    val moviesIds = moviesTermFreqs.zipWithUniqueId().map(_.swap).collectAsMap()
     //In order to reduce the term space we filter out infrequent items
     val moviesFreqs = moviesTermFreqs.flatMap(_.keySet).map((_, 1)).
       reduceByKey(_ + _, 24) //less than 24
@@ -237,6 +242,7 @@ object Problem1 {
       case (term, count) =>
         (term, math.log(numDocs.toDouble / count))
     }.toMap
+
 
     val idTerms = idfs.keys.zipWithIndex.toMap
 
@@ -259,30 +265,103 @@ object Problem1 {
     val mat = new RowMatrix(vecs)
     val svd = mat.computeSVD(25, computeU = true)
 
-    print(svd.toString)*/
+    print(svd.toString)
+
+    /* (e)
+      Based on the two topTermsInTopConcepts and topDocsInTopConcepts functions provided in the
+      RunLSA-shell.scala shell script, compute the top-25 terms and the top-25 documents, each under
+      the k = 25 latent concepts, for the above SVD.
+      Additionally modify the topDocsInTopConcepts function, such that it also prints the top-5 most
+      frequent genre labels of the Wikipedia articles returned by this function under each of the latent
+      concepts.
+      Manually inspect the results to determine if the SVD improves the representation of the documents
+      */
+    // ------------------- Query the Latent Semantic Index ------------------------
+
+    def topTermsInTopConcepts(svd: SingularValueDecomposition[RowMatrix, Matrix],
+                               numConcepts: Int, numTerms: Int): Seq[Seq[(String, Double)]] = {
+      val v = svd.V
+      val topTerms = new ArrayBuffer[Seq[(String, Double)]]()
+      val arr = v.toArray
+      for (i <- 0 until numConcepts) {
+        val offs = i * v.numRows
+        val termWeights = arr.slice(offs, offs + v.numRows).zipWithIndex
+        val sorted = termWeights.sortBy(-_._1)
+        topTerms += sorted.take(numTerms).map {
+          case (score, id) =>
+            (bIdTerms.find(_._2 == id).getOrElse(("", -1))._1, score)
+        }
+      }
+      topTerms
+    }
+
+    def topDocsInTopConcepts(svd: SingularValueDecomposition[RowMatrix, Matrix],
+                              numConcepts: Int, numDocs: Int): Seq[Seq[(String, Double)]] = { //DA MODIFICARE!!!!
+      val u = svd.U
+      val topDocs = new ArrayBuffer[Seq[(String, Double)]]()
+      for (i <- 0 until numConcepts) {
+        val docWeights = u.rows.map(_.toArray(i)).zipWithUniqueId()
+        topDocs += docWeights.top(numDocs).map {
+          case (score, id) => (moviesIds(id), score)
+        }
+      }
+      topDocs
+    }
+
+    val topConceptTerms = topTermsInTopConcepts(svd, 12, 12)
+    val topConceptDocs = topDocsInTopConcepts(svd, 12, 12)
+    for ((terms, docs) <- topConceptTerms.zip(topConceptDocs)) {
+      println("Concept terms: " + terms.map(_._1).mkString(", "))
+      println("Concept docs: " + docs.map(_._1).mkString(", "))
+      println()
+    }
 
     /*
-        //(d)
+    (f) Modify the provided topDocsForTermQuery function such that it computes the Cosine measure
+      (instead of the inner product) between a translated document vector d′ and a similarly translated
+      query vector q′ over the latent semantic space.
+      Sort the matching documents in descending order of Cosine similarities, and finally return the top-25
+      document vectors (and corresponding title entries) with the highest similarities to each such keyword
+      query.
+      Finally, think of 5–10 interesting keyword queries for movies and report their results.
+     */
 
-        val seriesX: RDD[Double] = df.select("airTemperature").rdd.map(row => row.getDouble(0))
 
-        var highestCorrelation = (0.0, "")
+    def termsToQueryVector(terms: scala.collection.immutable.Seq[String],
+                            idTerms: scala.collection.immutable.Map[String, Int],
+                            idfs: scala.collection.immutable.Map[String, Double]): BSparseVector[Double] = {
+      val indices = terms.map(idTerms(_)).toArray
+      val values = terms.map(idfs(_)).toArray
+      new BSparseVector[Double](indices, values, idTerms.size)
+    }
 
-        for(feature <- features) {
-          val field = df.select(feature).rdd.map(row =>
-            if(intField contains feature) row.getInt(0).toDouble
-            else row.getDouble(0))
+    def topDocsForTermQuery(
+                             US: RowMatrix,
+                             V: Matrix,
+                             query: BSparseVector[Double]): Seq[(Double, Long)] = {
+      val breezeV = new BDenseMatrix[Double](V.numRows, V.numCols, V.toArray)
+      val termRowArr = (breezeV.t * query).toArray
+      val termRowVec = Matrices.dense(termRowArr.length, 1, termRowArr)
+      val docScores = US.multiply(termRowVec)
+      val allDocWeights = docScores.rows.map(_.toArray(0)).zipWithUniqueId()
+      allDocWeights.top(10)
+    }
 
-          val correlation = Statistics.corr(seriesX, field, "spearman")
-          if(correlation > highestCorrelation._1)
-            highestCorrelation = (correlation, feature)
-          println("#############################################################################################################################")
-          println(s"Correlation is: $correlation with $feature data")
+    def multiplyByDiagonalRowMatrix(mat: RowMatrix, diag: MLLibVector): RowMatrix = {
+      val sArr = diag.toArray
+      new RowMatrix(mat.rows.map { vec =>
+        val vecArr = vec.toArray
+        val newArr = (0 until vec.size).toArray.map(i => vecArr(i) * sArr(i))
+        Vectors.dense(newArr)
+      })
+    }
 
-        }
+    val US = multiplyByDiagonalRowMatrix(svd.U, svd.s)
 
-        println(s"Highest Correlation is: $highestCorrelation")
+    val terms = List("serious", "incident")
 
-    */
+    val queryVec = termsToQueryVector(terms, idTerms, idfs)
+    topDocsForTermQuery(US, svd.V, queryVec)
+
   }
 }
