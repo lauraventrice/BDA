@@ -9,8 +9,43 @@ object Problem3 {
 
     //(a)
     val file = sc.textFile("./twitter_combined.txt")
+    val features = sc.wholeTextFiles("./twitter/*.feat")
+    val featuresName = sc.wholeTextFiles("./twitter/*.featnames")
+    val featuresEGO = sc.wholeTextFiles("./twitter/*.egofeat")
 
-    // TODO c'è un modo migliore per fare questo cambio senza il parallelize?
+    var results = features.map(elem => (elem._1+"names", elem._2))
+      .join(featuresName)
+      .map { case (fileName, (featBin, featName)) => (featBin, featName)}
+
+    val featuresEgo = featuresEGO.map(elem => {
+      (elem._1.replace(".egofeat", ".featnames"), elem._2.replace("\n", ""))
+    }).join(featuresName)
+      .map{ case (fileName, (featEgo, featName)) =>
+        val tmp = fileName.split("/")
+        (tmp(tmp.length-1).replace(".featnames", " ") + featEgo, featName)
+      }
+
+    results = results.union(featuresEgo)
+
+    val featureNames = results.flatMap(elem => {
+      val featBin = elem._1.split("\n")
+      val featName = elem._2.split("\n")
+      featBin.map(feat => {
+        val features = feat.split(" ")
+        var string = features(0)
+        features.indices.foreach(index => {
+          if (index > 0 && features(index).equals("1")){
+            string = string + "," + featName.filter(x => x.split(" ")(0).equals((index-1).toString))
+              .take(1)(0)
+              .split(" ")(1)
+          }
+        })
+        string
+      })
+    }).map(elem => {val tmp = elem.split(",")(0)
+      (tmp, elem.drop(tmp.length+1))
+    }).groupByKey().map(elem => (elem._1, elem._2.toArray))
+
     val arrayEdges = file.countByValue().toArray.map(elem => {
       val edge = elem._1.split(" ")
       Edge(edge(0).toLong, edge(1).toLong, elem._2.toInt)
@@ -18,13 +53,10 @@ object Problem3 {
 
     val edges = sc.parallelize(arrayEdges)
 
-    val vertices = file.flatMap(elem => {
-      elem.split(" ")
-    }).distinct().map(p => (p.toLong, p))
-    // TODO parse the features from the additional files and assign them as the vertex labels
+    val vertices = featureNames.map(elem => (elem._1.toLong, elem._2))
 
     val graph = Graph(vertices, edges).cache()
-    /*
+
     //(b)
     // TODO è sbagliato il risultato
     val connectedComponentGraph: Graph[VertexId, Int] = graph.connectedComponents()
@@ -37,8 +69,7 @@ object Problem3 {
     val componentCounts = sortedConnectedComponents(connectedComponentGraph)
     println(componentCounts.size)
 
-     */
-
+    /*
     //(c)
     // Degree-distribution
     val degrees: VertexRDD[Int] = graph.degrees.cache()
@@ -117,6 +148,9 @@ object Problem3 {
     val hist = paths.map(_._3).countByValue()
     hist.toSeq.sorted.foreach(println)
 
+     */
+
+    /*
     //(d)
     // PageRank API
     val ranks = graph.pageRank(0.001, 0.15).vertices
@@ -124,16 +158,25 @@ object Problem3 {
       (vertexId, rank, name) => (name, rank)
     }
     val ord = Ordering.by[(String, Double), Double](_._2)
-    namesAndRanks.map(_._2).top(250)(ord).foreach(println)
+    val top250 = namesAndRanks.map(_._2).top(250)(ord)
+    top250.foreach(println)
 
-    // TODO compara con i gradi normali (Capisci se è quello scritto qui)
+    println("COMPARE")
 
     val degreesInOut: VertexRDD[Int] = graph.degrees.cache()
     val namesAndRanksToCompare = degreesInOut.innerJoin(graph.vertices) {
       (topicId, rank, name) => (name, rank)
     }
     val ordToCompare = Ordering.by[(String, Int), Int](_._2)
-    namesAndRanksToCompare.map(_._2).top(250)(ordToCompare).foreach(println)
+    val top250ToCompare = namesAndRanksToCompare.map(_._2).top(250)(ordToCompare)
+    top250ToCompare.foreach(println)
+
+    val equalVertex = top250.filter(elem => top250ToCompare.map(_._1).contains(elem._1))
+    println("AAAAAAAAAA")
+    println(equalVertex.length)
+    equalVertex.foreach(println)
+
+     */
 
     //(e)
     
