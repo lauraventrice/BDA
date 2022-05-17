@@ -305,10 +305,10 @@ object Problem1 {
           case (score, id) => (moviesIds(id), score)
         }
       }
-      moviesTermFreqs.map(movie => (movie._1._2, 1)).reduceByKey(_ + _).sortByKey().top(5).foreach(println)
+      moviesTermFreqs.map(movie => (movie._1._2, 1)).reduceByKey(_ + _).sortBy(_._2).top(5).foreach(println)
       topDocs
     }
-    
+
     val topConceptTerms = topTermsInTopConcepts(svd, 12, 25)
     val topConceptDocs = topDocsInTopConcepts(svd, 12, 25)
     for ((terms, docs) <- topConceptTerms.zip(topConceptDocs)) {
@@ -339,13 +339,16 @@ object Problem1 {
     def topDocsForTermQuery(
                              US: RowMatrix,
                              V: Matrix,
-                             query: BSparseVector[Double]): Seq[(Double, Long)] = {
+                             query: BSparseVector[Double]): Seq[(String, Double, Long)] = {
       val breezeV = new BDenseMatrix[Double](V.numRows, V.numCols, V.toArray)
-      val termRowArr = (breezeV.t * query).toArray
+      val termRowArr = (breezeV.t * query).toArray  //TODO: DA MODIFICARE con cosine similarity
       val termRowVec = Matrices.dense(termRowArr.length, 1, termRowArr)
-      val docScores = US.multiply(termRowVec) //TODO: DA MODIFICARE con cosine similarity
+      val docScores = US.multiply(termRowVec)
       val allDocWeights = docScores.rows.map(_.toArray(0)).zipWithUniqueId()
-      allDocWeights.top(10)
+      val title = lemmatized.map(movie => movie.getString(0))
+
+      val zippedRDD = (title.zip(allDocWeights)).map{ case (title, (weights, id)) => (title, weights, id) } //zip with title
+      zippedRDD.sortBy(_._2, ascending = false).top(25)
     }
 
     def multiplyByDiagonalRowMatrix(mat: RowMatrix, diag: MLLibVector): RowMatrix = {
