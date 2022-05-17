@@ -187,10 +187,9 @@ object Problem1 {
       }
       lemmas
     }
-    val rddMovies = df.rdd
 
     val lemmatized: RDD[Row]=
-      rddMovies.mapPartitions(it => {
+      df.rdd.mapPartitions(it => {
         val pipeline = createNLPPipeline()
         val res = it.map ( row => {
           Row(row.getString(0), row.getString(1), row.getString(2), plainTextToLemmas(row.getString(2), pipeline).toArray.mkString(","))
@@ -198,24 +197,29 @@ object Problem1 {
         res
       })
 
-    schemaString = "title genre plot features"
+    val result = lemmatized.map(movie => Row(movie.getString(3)))
+
+    schemaString = "features"
 
     fields = schemaString.split(" ")
       .map(fieldName => StructField(fieldName, dataType = StringType, nullable = true))
 
     schema = StructType(fields)
 
-    df = spark.createDataFrame(lemmatized, schema)
+    val column_lemmas = spark.createDataFrame(result, schema)
 
+    df = df.withColumn("features", column_lemmas.col("features"))
 
-    df.repartition(1).write.option("header",value = true).csv("./WITHLEMMAS")
+    //df = spark.createDataFrame(lemmatized, schema)
+    df.repartition(1).write.option("header", value=true).csv("./WITHLEMMAS")
 
     /*
     (d) Compute an SVD decomposition of the 134,164 movie plots contained in your DataFrame by using the following two basic parameters:
       – numFreq = 5000 for the number of frequent terms extracted from all Wikipedia articles, and
       – k = 25 for the number of latent dimensions used for the SVD.
      */
-    val k = 25
+    /*val k = 25
+    val numFreq = 5000
     val moviesTermFreqs = lemmatized.map (movie => {
       val termFreqs = movie.getString(3).split(',').toSeq.foldLeft(new HashMap[String, Int]()) {
         (map, term) => {
@@ -237,7 +241,7 @@ object Problem1 {
       reduceByKey(_ + _, 25) //less than 25
 
     val ordering = Ordering.by[((String), Int), Int](_._2)
-    val topTermsFreqs = termsFreqs.top(5000)(ordering)
+    val topTermsFreqs = termsFreqs.top(numFreq)(ordering)
 
     val idfs = topTermsFreqs.map {
       case (term, count) =>
@@ -266,7 +270,7 @@ object Problem1 {
     val mat = new RowMatrix(vecs)
     val svd = mat.computeSVD(k, computeU = true)
 
-    print(svd.toString)
+    print(svd.toString)*/
 
     /* (e)
       Based on the two topTermsInTopConcepts and topDocsInTopConcepts functions provided in the
@@ -281,7 +285,7 @@ object Problem1 {
 
     def topTermsInTopConcepts(svd: SingularValueDecomposition[RowMatrix, Matrix],
                                numConcepts: Int, numTerms: Int): Seq[Seq[(String, Double)]] = {
-      val v = svd.V
+      val v = svd.V //encodes document-to-concept mappings
       val topTerms = new ArrayBuffer[Seq[(String, Double)]]()
       val arr = v.toArray
       for (i <- 0 until numConcepts) {
@@ -309,6 +313,8 @@ object Problem1 {
       topDocs
     }
 
+
+
     val topConceptTerms = topTermsInTopConcepts(svd, 12, 25)
     val topConceptDocs = topDocsInTopConcepts(svd, 12, 25)
     for ((terms, docs) <- topConceptTerms.zip(topConceptDocs)) {
@@ -327,7 +333,7 @@ object Problem1 {
       Finally, think of 5–10 interesting keyword queries for movies and report their results.
      */
 
-/*
+
     def termsToQueryVector(terms: scala.collection.immutable.Seq[String],
                             idTerms: scala.collection.immutable.Map[String, Int],
                             idfs: scala.collection.immutable.Map[String, Double]): BSparseVector[Double] = {
@@ -343,7 +349,7 @@ object Problem1 {
       val breezeV = new BDenseMatrix[Double](V.numRows, V.numCols, V.toArray)
       val termRowArr = (breezeV.t * query).toArray
       val termRowVec = Matrices.dense(termRowArr.length, 1, termRowArr)
-      val docScores = US.multiply(termRowVec)
+      val docScores = US.multiply(termRowVec) //TODO: DA MODIFICARE con cosine similarity
       val allDocWeights = docScores.rows.map(_.toArray(0)).zipWithUniqueId()
       allDocWeights.top(10)
     }
@@ -363,6 +369,6 @@ object Problem1 {
 
     val queryVec = termsToQueryVector(terms, idTerms, idfs)
     topDocsForTermQuery(US, svd.V, queryVec)
-*/
+
   }
 }
