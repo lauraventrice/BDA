@@ -1,0 +1,17 @@
+# Explanation
+(a)
+
+First, in order to parse the feature for each node we loaded the wholeTextFiles of “.feat”, “.featnames” and “.egofeat”. The main idea is to join together these files and obtain an rdd of (String, Array[String]) where the first entry is the vertexID and the second one is an array of the features’ name.
+
+After, we created the edges using the “twitter_combined.txt” (for each of the edge we count the number of occurrence and we used this number as edge’s weight). 
+For the vertices, we just used the featureNames created before.
+
+(b)
+We performed a connected-components analysis of the combined set of edges. The number of connected components is equal to 1.
+
+(c)
+DESCRIVI IL GRAPH IN BASE ALLE TRE ANALISI
+
+(d)
+We used the PageRank API to obtain the 250 nodes with the highest PageRank value. Then we selected the 250 nodes with the highest in and out degree.
+We could see that there are some equal nodes between these two analysis, but there are also some different nodes. In total, the nodes in both "top250" are 126, so more than half are the same.
