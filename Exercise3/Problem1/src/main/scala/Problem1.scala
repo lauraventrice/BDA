@@ -296,7 +296,7 @@ object Problem1 {
     }
 
     def topDocsInTopConcepts(svd: SingularValueDecomposition[RowMatrix, Matrix],
-                              numConcepts: Int, numDocs: Int): Seq[Seq[((String, String), Double)]] = { //DA MODIFICARE!!!!
+                              numConcepts: Int, numDocs: Int): Seq[Seq[((String, String), Double)]] = {
       val u = svd.U
       val topDocs = new ArrayBuffer[Seq[((String, String), Double)]]()
       for (i <- 0 until numConcepts) {
@@ -305,11 +305,10 @@ object Problem1 {
           case (score, id) => (moviesIds(id), score)
         }
       }
+      moviesTermFreqs.map(movie => (movie._1._2, 1)).reduceByKey(_ + _).sortByKey().top(5).foreach(println)
       topDocs
     }
-
-
-
+    
     val topConceptTerms = topTermsInTopConcepts(svd, 12, 25)
     val topConceptDocs = topDocsInTopConcepts(svd, 12, 25)
     for ((terms, docs) <- topConceptTerms.zip(topConceptDocs)) {
@@ -360,7 +359,7 @@ object Problem1 {
 
     val US = multiplyByDiagonalRowMatrix(svd.U, svd.s)
 
-    val terms = List("serious", "incident")
+    val terms = List("love", "war", "family", "action", "marriage", "dead")
 
     val queryVec = termsToQueryVector(terms, idTerms, idfs)
     topDocsForTermQuery(US, svd.V, queryVec)
