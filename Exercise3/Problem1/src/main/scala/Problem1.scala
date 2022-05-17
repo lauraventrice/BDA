@@ -197,28 +197,23 @@ object Problem1 {
         res
       })
 
-    val result = lemmatized.map(movie => Row(movie.getString(3)))
-
-    schemaString = "features"
+    schemaString = "title genre plot features"
 
     fields = schemaString.split(" ")
       .map(fieldName => StructField(fieldName, dataType = StringType, nullable = true))
 
     schema = StructType(fields)
 
-    val column_lemmas = spark.createDataFrame(result, schema)
+    df = spark.createDataFrame(lemmatized, schema)
 
-    df = df.withColumn("features", column_lemmas.col("features"))
-
-    //df = spark.createDataFrame(lemmatized, schema)
-    df.repartition(1).write.option("header", value=true).csv("./WITHLEMMAS")
+    
 
     /*
     (d) Compute an SVD decomposition of the 134,164 movie plots contained in your DataFrame by using the following two basic parameters:
       – numFreq = 5000 for the number of frequent terms extracted from all Wikipedia articles, and
       – k = 25 for the number of latent dimensions used for the SVD.
      */
-    /*val k = 25
+    val k = 25
     val numFreq = 5000
     val moviesTermFreqs = lemmatized.map (movie => {
       val termFreqs = movie.getString(3).split(',').toSeq.foldLeft(new HashMap[String, Int]()) {
@@ -270,7 +265,7 @@ object Problem1 {
     val mat = new RowMatrix(vecs)
     val svd = mat.computeSVD(k, computeU = true)
 
-    print(svd.toString)*/
+    print(svd.toString)
 
     /* (e)
       Based on the two topTermsInTopConcepts and topDocsInTopConcepts functions provided in the
