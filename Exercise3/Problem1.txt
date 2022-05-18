@@ -14,7 +14,7 @@ spark-submit --class RunLSA RunLSA.jar
 
 At the ending of this process we used the function createDataFrame with arguments the result of the parsing process and the schema with StringType for each column. 
 
-The number of article is 34,886 as mentioned in the dataset link "https://www.kaggle.com/datasets/jrobischon/wikipedia-movie-plots". 
+The number of articles is 34,886 as mentioned in the dataset link "https://www.kaggle.com/datasets/jrobischon/wikipedia-movie-plots". 
 
 (b)  Next we added the column feature using the function plainTextToLemmas in order to obtain a list lemmas contained in each plot. Afterwards we converted the dataframe in rdd and using mapPartitions we created an RDD[Row]. At the end with created the dataframe using RDD[Row] and the new schemaString with the addictional column. 
 
@@ -26,7 +26,85 @@ Then we kept only the top 5000 terms from within all documents and inverted the 
 The last step has been combine the terms frequency and index terms frequency for all terms in a plot into a sparse vector rappresentation. The result is in vecs which is the argument of RowMatrix for compute the SVD. 
 
 
-(e) We used the functions topTermsInTopConcepts and topDocsInTopConcepts in order to obtain the top-25 terms and the top-25 documents. The top frequent genre labels are: 
+(e) We used the functions topTermsInTopConcepts and topDocsInTopConcepts in order to obtain the top-25 terms and the top-25 documents. 
+
+Concept terms: film, love, story, family, father, man, life, woman, kill, get, girl, murder, young, son, marry, wife, mother, police, brother, find, friend, daughter, fall, become, play
+Concept docs: Galaxy Turnpike, Title, Doctor Bari, The Large Rope, Hridayer Shabdo, Radha Krishna, Manasina Maathu, Bright Lights, Deewaangee, Killing 'em Softly, Guneghar, C.I.D. 909, Moss & Cat, Theerthadanam, Ninaivugal, I Love You, Kanteerava, Flower and Snake: Zero, Kote, Maa Kasam, The Glass Alibi, Manchali, Huchudugaru, School Master, Min & Max
+
+Concept terms: mithun, film, chakraborty, role, action, story, raja, play, vijay, drama, love, family, star, krishna, village, lead, movie, revolve, kumar, ravi, radha, suraj, support, feature, raj
+Concept docs: Suraj, Jagir, Bangali Babu, Do Numbri, Devta, Santrash, Guru (2003 film), Jeene Ki Arzoo, Rasta, Guneghar, Aar Paar, Pyar Ke Naam Qurbaan, Sanyasi Mera Naam, Pyar Ka Karz, Woh Jo Hasina, Gudia, Jurmana, Patita, Romance, Kranti Kshetra, Maa Kasam, Kalankini Kankabati, Main Aur Mera Haathi, Sahhas, Pratigyabadh
+
+Concept terms: raja, village, marry, father, mother, daughter, wife, ravi, husband, son, child, kill, murder, girl, man, rao, marriage, money, woman, love, krishna, sister, brother, live, radha
+Concept docs: Unakkaga Mattum, Unakkaga Naan, Vishaka Express, President Gari Pellam, Mr. Marumakan (മിസ്റ്റർ മരുമകൻ), Rajadhi Raja, Kondaveeti Raja, Amar Deep, Thaayin Madiyil, Aflatoon, Shakuntala, Anbalippu, Jab Jab Phool Khile, The Large Rope, Dil Deke Dekho, Kaaval Nilayam, Run Raja Run, What Happened to Harkness?, Ontari Poratam, Raja Kaiya Vacha, Kondapalli Raja, Pudhalvan, Vazhvey Maayam, Rajavin Parvaiyile, Bahaar Aane Tak
+
+Concept terms: mithun, joe, jack, chakraborty, action, war, role, jim, john, american, agent, film, johnny, british, star, lead, ship, sam, charlie, harry, frank, mike, world, paul, gang
+Concept docs: Suraj, Jagir, Santrash, Do Numbri, Devta, Jeene Ki Arzoo, Bangali Babu, Aar Paar, Rasta, Sanyasi Mera Naam, Pyar Ke Naam Qurbaan, Guru (2003 film), Pyar Ka Karz, Guneghar, Woh Jo Hasina, Romance, Kalankini Kankabati, Kranti Kshetra, Hum Se Na Takrana, Ustadi Ustad Se, Tarkeeb, Main Aur Mera Haathi, Taqdeer Ka Badshah, Sameera, Zindagani
+
+Concept terms: film, story, plot, revolve, around, movie, base, introduction, character, set, life, comedy, backdrop, tokyo, war, young, tom, romance, krishna, world, jerry, romantic, center, three, different
+Concept docs: Title, Walk Like a Dragon, Galaxy Turnpike, Flower and Snake: Zero, Blind Massage, Manasina Maathu, C.I.D. 909, Murali Meets Meera, Doctor Bari, Aag, Hridayer Shabdo, Kalgejje, Sweety Nanna Jodi, For Love or Money, Minmini, Two Thumbs Up, Graduate, Huchudugaru, Tokyo Family, Achchani, Apaaratha, Sargavasantham, 101 Weddings, Kal Manja, Abhimanyu
+
+Concept terms: raja, plot, film, murder, gang, british, war, officer, criminal, agent, police, american, army, japanese, detective, crime, world, investigate, ship, german, soldier, set, kill, killer, leader
+Concept docs: Title, Unakkaga Naan, Mr. Marumakan (മിസ്റ്റർ മരുമകൻ), Nallavan, Unakkaga Mattum, Jab Jab Phool Khile, President Gari Pellam, Shakuntala, Dil Deke Dekho, Rajadhi Raja, Aflatoon, Thaayin Madiyil, Wanted (2010 film), Amar Deep, Kondapalli Raja, Vishaka Express, Kondaveeti Raja, Raja Kaiya Vacha, As You Like It, Ontari Poratam, Anbalippu, Run Raja Run, Kartoos, A Tiger Walks, Vazhvey Maayam
+
+Concept terms: raja, joe, film, mary, school, introduction, relationship, family, star, david, romance, romantic, music, jack, new, larry, harry, child, comedy, mother, mike, set, york, alice, boy
+Concept docs: Unakkaga Naan, Mr. Marumakan (മിസ്റ്റർ മരുമകൻ), Nallavan, Unakkaga Mattum, Jab Jab Phool Khile, Walk Like a Dragon, President Gari Pellam, Shakuntala, Dil Deke Dekho, Thaayin Madiyil, Bright Lights, Aflatoon, Rajadhi Raja, Vazhvey Maayam, Amar Deep, Anbalippu, Ontari Poratam, Kondapalli Raja, A Tiger Walks, Raja Kaiya Vacha, Thaayillamal Naan Illai, Aakhri Sangram, Wanted (2010 film), Abhinandana, Yamadonga
+
+Concept terms: war, british, king, ship, island, world, soldier, german, japanese, army, prince, captain, american, group, attack, village, mission, krishna, battle, crew, earth, princess, mithun, bug, alien
+Concept docs: Who Goes Next?, The Hook, Neutral Port, Escape to Danger, Kiss Me Sergeant, An Inaccurate Memoir, Four Feathers, The King's Pirate, The Space Children, Permission to Kill, Battles of Chief Pontiac, To End All Wars, Steel Rain, Moscow Nights, A Kiss for Cinderella, A Kiss for Cinderella, The Crouching Beast, Emerald of the East, Rengō Kantai Shirei Chōkan: Yamamoto Isoroku, Uprising, Don't Panic Chaps!, Mystery Sea Raider, Night Boat to Dublin, Heart Trouble, Hold Back the Night
+
+Concept terms: joe, film, vijay, krishna, gang, story, police, criminal, murder, introduction, officer, crime, base, set, war, british, ravi, killer, agent, kill, detective, prison, radha, tokyo, investigate
+Concept docs: Walk Like a Dragon, Bright Lights, Yashoda Krishna, Yashoda Krishna, Yashoda Krishna, Radha Krishna, Galaxy Turnpike, Flower and Snake: Zero, Mauali Krishna, A Prayer Before Dawn, The Man They Couldn't Arrest, Joe, Somewhere in Politics, Jaguar Lives!, Diamond Horseshoe, Raw Deal, Kaaval Nilayam, Blind Massage, Let 'Em Have It, Flesh, Bejawada, Ketu Duplicatu, Dostana, Headin' South, Laparwah
+
+Concept terms: vijay, film, raja, ajay, ravi, murder, introduction, priya, student, school, movie, college, charlie, jack, killer, nick, girl, relationship, character, set, police, michael, romance, comedy, romantic
+Concept docs: Ketu Duplicatu, Kaaval Nilayam, Walk Like a Dragon, Dostana, Kasak, Priyamaanavale, Kanteerava, Once More, Nanbargal, Suyamariyadhai, Innisai Mazhai, Naan Adimai Illai, Vedan, Jeet, Phaansi Ke Baad, Majaal, Rasigan, Veera Bahu, Dhosth, Bahaar Aane Tak, Hera Pheri, Pusthakamlo Konni Pageelu Missing, Vedha, Vedham, Raman Sreeraman
+
+Concept terms: vijay, joe, war, plot, king, british, prince, world, ship, ravi, army, japanese, german, soldier, island, princess, captain, american, bug, priya, crew, ajay, alien, earth, queen
+Concept docs: Title, Ketu Duplicatu, Dostana, Kasak, Priyamaanavale, Once More, Nanbargal, Kanteerava, Kaaval Nilayam, Jeet, Innisai Mazhai, Suyamariyadhai, Naan Adimai Illai, Majaal, Dhosth, Veera Bahu, Rasigan, Pusthakamlo Konni Pageelu Missing, Vedha, Vedan, Idhaya Thamarai, Prema Tarangalu, Hum Aapke Dil Mein Rehte Hain, Jurmana, Vedham
+
+Concept terms: krishna, vijay, jack, film, plot, radha, johnny, raja, charlie, jim, introduction, sam, bug, nick, lord, mike, david, steve, harry, john, frank, mary, ben, paul, bob
+Concept docs: Yashoda Krishna, Yashoda Krishna, Yashoda Krishna, Mauali Krishna, Radha Krishna, Walk Like a Dragon, Krishna Prema, Krishna Prema, Title, Kalyanram Kathi, Baladur, Bejawada, Naa Ninna Bidalaare, Main Krishna Hoon, Dhag, Krishna Babu, Majhdhaar, Vallinam, Sri Krishna Rayabaram, Yateem, Ketu Duplicatu, R. Prakash, Thillalangadi, Aa Okkadu, Sailaab
+
+Concept terms: johnny, bug, sam, gang, school, student, ravi, team, bank, charlie, revolve, movie, arjun, village, raju, shankar, jim, around, outlaw, billy, raj, town, brother, gangster, plot
+Concept docs: Happy Mother's Day, Love George, The West Side Kid, Homeboy, Kamaal Dhamaal Malamaal, The Texas Rangers, Poolhall Junkies, Poolhall Junkies, The Boy Who Had Everything (a.k.a. Winner Takes All), Hell's Kitchen, Aamne Samne, Right Cross, Men of Chance, Men of Chance, Johnny, Double Dynamite, Duel at Apache Wells, Ellis Island, Manpower, Speedway Junky, Johnny Handsome, Bar 20 Rides Again, The Crossing, The Magnet, The Lone Star Trail, Expresso Bongo
+
+Concept terms: jack, ravi, film, introduction, mohan, shankar, anand, ashok, raju, family, raj, radha, set, action, kumar, singh, tokyo, gang, rao, brother, son, asha, emotional, ram, bank
+Concept docs: Walk Like a Dragon, Galaxy Turnpike, Flower and Snake: Zero, Nishaan, Laparwah, Palkon Ki Chhaon Mein, Blind Massage, Achchani, Apaaratha, Jwala Daku, For Love or Money, Kasturi Nivasa (color version), Kasturi Nivasa, Doctor Bari, Kadhalithal Podhuma, Tokyo Family, Oru Oodhappu Kan Simittugiradhu, Ghamandee, Jack and the Beanstalk, Chintakayala Ravi, Dil Tera Deewana, Param Dharam, Himmatwala, Nee Kosam, C.I.D.
+
+Concept terms: johnny, jim, film, woman, prince, king, husband, war, marry, young, british, mary, introduction, wealthy, vijay, wife, love, american, charlie, romance, tony, radha, marriage, princess, helen
+Concept docs: Walk Like a Dragon, Happy Mother's Day, Love George, Homeboy, Men of Chance, Men of Chance, Ellis Island, Johnny, Right Cross, Aamne Samne, Poolhall Junkies, Poolhall Junkies, Johnny on the Run, The Lone Star Trail, Bar 20 Rides Again, Double Dynamite, Love Comes Along, Johnny Handsome, Hell's Kitchen, Manpower, Johnny Concho, Speedway Junky, Copper Canyon, Expresso Bongo, Johnny O'Clock, The Nitwits
+
+Concept terms: ravi, film, murder, krishna, introduction, doctor, paul, plot, bug, wife, harry, radha, action, husband, school, student, nick, mohan, case, alex, tokyo, suicide, max, patient, house
+Concept docs: Walk Like a Dragon, Title, Doctor Bari, Flower and Snake: Zero, Galaxy Turnpike, Laparwah, Yashoda Krishna, Yashoda Krishna, Yashoda Krishna, Suraj, Sudharshan, For Love or Money, Palkon Ki Chhaon Mein, The Case of Gabriel Perry, Jwala Daku, Bluebeard, Deadlock, Youth's Endearing Charm, Oru Oodhappu Kan Simittugiradhu, Param Dharam, Kasturi Nivasa (color version), Kasturi Nivasa, Nishaan, Tokyo Family, Two Thumbs Up
+
+Concept terms: bug, sam, murder, charlie, king, johnny, prince, film, woman, princess, vijay, joe, rabbit, doctor, introduction, kingdom, killer, husband, queen, bunny, young, accuse, wife, set, man
+Concept docs: The Heckling Hare, Elmer's Pet Rabbit, Big House Bunny, All This and Rabbit Stew, Bushy Hare, Mutiny on the Bunny, Rabbit Rampage, Hare Lift, Wideo Wabbit, Knighty Knight Bugs, Bunker Hill Bunny, Hare Brush, Bugs Bunny Rides Again, Sahara Hare, Hyde and Hare, Southern Fried Rabbit, False Hare, Devil May Hare, Stage Door Cartoon, Ballot Box Bunny, Buccaneer Bunny, Bugs Bunny's 3rd Movie: 1001 Rabbit Tales, Rabbitson Crusoe, Bugs Bunny Gets the Boid, Dumb Patrol
+
+Concept terms: ravi, johnny, jack, student, war, murder, british, village, japanese, world, school, charlie, german, joe, krishna, teacher, david, american, college, soldier, army, ship, officer, jerry, mithun
+Concept docs: Jwala Daku, Palkon Ki Chhaon Mein, Happy Mother's Day, Love George, Kadhalithal Podhuma, Kasturi Nivasa (color version), Kasturi Nivasa, Nishaan, Chintakayala Ravi, Nee Kosam, Oru Oodhappu Kan Simittugiradhu, Dil Tera Deewana, Dostana, Homeboy, Love Channel, Himmatwala, C.I.D., Ayalum Njanum Thammil (അയാളും ഞാനും തമ്മിൽ), The Boy Who Had Everything (a.k.a. Winner Takes All), Nakhuda, Kai Koduttha Dheivam, Ellis Island, Poolhall Junkies, Poolhall Junkies, Chinna Chinna Kannile, Pookari
+
+Concept terms: charlie, ravi, jim, story, prince, king, revolve, movie, chan, princess, shankar, play, around, gang, love, drama, base, horse, kingdom, romantic, queen, comedy, tony, bob, billy
+Concept docs: Natturajavu, Gentlemen of Nerve, The Return of Charlie Chan, Palkon Ki Chhaon Mein, Nishaan, Jwala Daku, Kadhalithal Podhuma, Charlie St. Cloud, Charlie Chaplin, Kasturi Nivasa (color version), Kasturi Nivasa, Uncle Bun, Anna Bond, Nee Kosam, The Masquerader, Chintakayala Ravi, The Ice Harvest, Till There Was You, Till There Was You, Dostana, Sylvester, Dil Tera Deewana, C.I.D., Charlie Chan's Murder Cruise, Shadow of a Doubt
+
+Concept terms: ravi, bug, jim, sam, story, mary, woman, murder, shankar, steve, play, young, revolve, mike, king, prince, ann, paul, detective, harry, killer, love, george, movie, peter
+Concept docs: Palkon Ki Chhaon Mein, Nishaan, Kadhalithal Podhuma, Jwala Daku, Kasturi Nivasa (color version), Kasturi Nivasa, Nee Kosam, Chintakayala Ravi, Dil Tera Deewana, Dostana, C.I.D., Nakhuda, Love Channel, Kai Koduttha Dheivam, Himmatwala, Chinna Chinna Kannile, Pookari, Oru Oodhappu Kan Simittugiradhu, Ayalum Njanum Thammil (അയാളും ഞാനും തമ്മിൽ), The Heckling Hare, Chaarulatha, Pandianadu, Saagar, Puli Veta, Vettaikkaran
+
+Concept terms: king, prince, princess, student, kingdom, shiva, school, queen, ravi, film, priya, max, johnny, arjun, college, introduction, minister, palace, nick, gang, teacher, jimmy, raj, play, rahul
+Concept docs: Walk Like a Dragon, It's a King, Abhimanyu, Madanakamarajan, Veera Kadgamu, Pudhumai Pithan, The King's Case Note, Married in Hollywood, The Magician, The Iron Glove, Kaveri, Raja Bakthi, Saudamini, Confessions of a Queen, Karma, Rajkumar, Rajkumar, Mrs. Fitzherbert, Mangamma Sabatham, Cafe Colette, The King and I, Vidyapati, The Wizard of Baghdad, Raja Mukthi, Raju Peda
+
+Concept terms: anand, priya, ashok, raj, bug, british, movie, war, love, sam, drama, comedy, american, play, romantic, shiva, world, prem, rahul, kumar, charlie, german, agent, fall, asha
+Concept docs: Lal Dupatta Malmal Ka, Oyee, Alexander, House No. 44, Humraaz, Nothing Else Matters, Kote, Chorabali, Vaanavil, 13, Aap Ke Saath, Escape to Danger, Who Goes Next?, Chalte Chalte, Amma, Unnai Vaazhthi Paadugiren, Bangaarada Hoovu, Permission to Kill, Mon Bole Priya Priya, Ziddi, Nenjil Jil Jil, Bewafa, Deadly, Dil-E-Nadaan, Yeh Kaisi Mohabbat
+
+Concept terms: jim, student, murder, priya, anand, shiva, johnny, college, killer, jack, school, king, joe, arjun, raj, prince, film, teacher, introduction, serial, ship, rahul, island, tony, pirate
+Concept docs: Seven Footprints to Satan, The Hitcher, Three Hours to Kill, I'll Give My Life, Border Law, Walk Like a Dragon, Wiretapper, The Adventures of Huckleberry Finn, Saturday's Millions, Alias a Gentleman, The Rookie, This Man Is Mine, Wine, Women and Horses, Haunted Harbor, The Basketball Diaries, My Friend the King, Bloodmoon, The Big Trees, Lorna, R.S.V.P., Jim the Penman, The Texas Rangers, The Man from Snowy River II, The Man from Snowy River II (a.k.a. Return to Snowy River (US) and The Untamed (UK)), The Mark
+
+Concept terms: story, shiva, priya, nick, revolve, david, family, harry, arjun, around, mithun, raj, rahul, child, kill, karan, lord, tell, husband, ajay, shankar, life, alien, suraj, three
+Concept docs: Kalahasti Mahatyam, Sivasakthi Dubbed from Kannada[1], Vaalee, Rajashilpi, Rudhra Thaandavam, Vaali, Suraj, Roudram, Rowthiram, Khoon Pasina, Aag, Sonna Puriyathu, Muqaddar, Hridayer Shabdo, Kadamai Kanniyam Kattupaadu, Irumbu Thirai, Unnai Vaazhthi Paadugiren, Vaanavil, Yaaruda Mahesh, C.I.D. 909, Bhaktha Markandeya, Ondrupattal Undu Vazhvu, Jurmana, Humraaz, Rekka
+
+Concept terms: gang, young, woman, anand, husband, family, krishna, child, doctor, thief, japanese, boy, couple, criminal, ravi, kong, man, mother, max, hong, jack, life, girl, jin, wealthy
+Concept docs: The Medicine Man, Let 'Em Have It, The Man They Couldn't Arrest, Emperor Tomato Ketchup, Emperor Tomato Ketchup, As the Earth Turns, Girls Will Be Boys, Oliver Twist, Compromising Daphne, Title, Models Inc., Oh, What a Night, God's Clay, The Man Outside, Hotel for Women, Yashoda Krishna, Yashoda Krishna, Yashoda Krishna, Dakota Lil, Anne One Hundred, The Crimson Circle, The Crimson Circle, Pagadai Panirendu, Love from a Stranger, Motorpsycho
+
+
+The top frequent genre labels are: 
 
 1. (6083,unknown)
 2. (5991,drama)
@@ -40,6 +118,32 @@ TODO: SVD IMPROVED THE RAPRESENTATION OF DOCUMENTS?????
 
 (f) We modified topDocsForTermQuery using the cosineSimilary computed in the function computeCosine in order to compute the cosineSimilarity for each row of the matrix and the translated query vector saved in another matrix .  Next we sorted the documents in descending order of cosine similarity and the top 25 documents are: 
 
+
+(…First Do No Harm,0.4132046923241902,919)
+(Цветок дьявола,0.25542048509353427,33545)
+(Ōoku: Emonnosuke Tsunayoshi Hen,0.44401339871978857,32189)
+(Ōoku,0.44401339871978857,31841)
+(İstanbul Kırmızısı,0.4538616284713898,35678)
+(Çok Berbat Hareketler Bunlar,0.3060000957508563,35576)
+(Çingirakli Top,0.4222686598758425,35507)
+(Çalgı Çengi İkimiz,0.361902868374278,35669)
+(Æon Flux,0.3345063685146532,6034)
+(xxxHolic: A Midsummer Night's Dream,0.23001181293389023,31394)
+(xXx: State of the Union,0.24530294651251755,6628)
+(xXx: Return of Xander Cage,0.17759553656865654,13765)
+(xXx,0.26256614079789226,4813)
+(waydowntown,0.349270414727831,28276)
+(if....,0.10579664707719427,22036)
+(iBoy,0.030697213657544322,27223)
+(iBoy,0.030697213657544322,13783)
+(eXistenZ,0.08015151308522919,2635)
+(Zutto Mae Kara Suki Deshita,0.08186269937502987,32606)
+(Zulu,0.6133488450917561,21526)
+(Zulmi,0.3828505316232492,9089)
+(Zulm Ki Hukumat,0.31704013373992695,7994)
+(Zotz!,0.2649913345948505,23070)
+(Zorro, the Gay Blade,0.36079348206464207,29748)
+(Zorro's Fighting Legion,0.24472160534637824,8169)
 
 
 The keyword that we used were "love", "war", "family", "action", "marriage", "dead".  
