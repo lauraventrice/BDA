@@ -213,7 +213,7 @@ object Problem1 {
           map
         }
       }
-      ((movie.getString(0), movie.getString(1)), termFreqs)
+      (movie.getString(0), termFreqs)
     })
     moviesTermFreqs.cache()
     moviesTermFreqs.count()
@@ -296,7 +296,7 @@ object Problem1 {
           case (score, id) => (moviesIds(id), score)
         }
       }
-      moviesTermFreqs.map(movie => (movie._1._2, 1)).reduceByKey(_ + _).sortBy(_._2).top(5).foreach(println)
+      lemmatized.map(movie => (movie.getString(1), 1)).reduceByKey(_ + _).sortBy(_._2).top(5).foreach(println)
       topDocs
     }
 
@@ -376,7 +376,7 @@ object Problem1 {
     val terms = List("love", "war", "family", "action", "marriage", "dead")
 
     val queryVec = termsToQueryVector(terms, idTerms, idfs)
-    topDocsForTermQuery(US, svd.V, queryVec)
+    topDocsForTermQuery(US, svd.V, queryVec).foreach(println)
 
   }
 }
