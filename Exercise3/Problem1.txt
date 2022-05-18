@@ -1,0 +1,46 @@
+#How to run 
+
+scalac -classpath $SPARK_HOME/jars/*:. RunLSA.scala
+jar -cvf RunLSA.jar RunLSA*.class
+spark-submit --class RunLSA RunLSA.jar
+
+##Explanation and results
+
+(a) We parsed the input file "wiki_movie_plots_deduped.csv" in twi steps: 
+
+	1) using the function cleanCSV we obtained string information of each movie, because the dataset at the begining had multiple row of the same record. We trasformed this result in RDD[String];
+
+	2) afterwards we used the function parse in order to parse each line with information about movies using parseLine function for each record. The latter function parse the record in order to obtain objects Row with "title, genre, plot". The result of this part is a RDD[Row]. 
+
+At the ending of this process we used the function createDataFrame with arguments the result of the parsing process and the schema with StringType for each column. 
+
+The number of article is 34,886 as mentioned in the dataset link "https://www.kaggle.com/datasets/jrobischon/wikipedia-movie-plots". 
+
+(b)  Next we added the column feature using the function plainTextToLemmas in order to obtain a list lemmas contained in each plot. Afterwards we converted the dataframe in rdd and using mapPartitions we created an RDD[Row]. At the end with created the dataframe using RDD[Row] and the new schemaString with the addictional column. 
+
+(d) We started to compute the SVD decomposition of the 34,886 movie plots starting from the dataframe and using map and foldLeft we obtain a RDD with (title, genre, HashMap(String, Int)) which rappresents the frequency of the terms(lemmas) in the last column associated with the title of the movie. 
+For frequent access the map with frequency has been cached. 
+Afterwards we calculeted ids of each movie using the function zipWithUniqueId() and also termsFreq with all terms which are present in the all plots with the frequence. 
+Then we kept only the top 5000 terms from within all documents and inverted the terms frequency values into their index terms frequency in idfs.  
+
+The last step has been combine the terms frequency and index terms frequency for all terms in a plot into a sparse vector rappresentation. The result is in vecs which is the argument of RowMatrix for compute the SVD. 
+
+
+(e) We used the functions topTermsInTopConcepts and topDocsInTopConcepts in order to obtain the top-25 terms and the top-25 documents. The top frequent genre labels are: 
+
+1. (6083,unknown)
+2. (5991,drama)
+3. (4398,comedy)
+4. (1172,horror)
+5. (1119,action)
+
+TODO: SVD IMPROVED THE RAPRESENTATION OF DOCUMENTS?????
+
+
+
+(f) We modified topDocsForTermQuery using the cosineSimilary computed in the function computeCosine in order to compute the cosineSimilarity for each row of the matrix and the translated query vector saved in another matrix .  Next we sorted the documents in descending order of cosine similarity and the top 25 documents are: 
+
+
+
+The keyword that we used were "love", "war", "family", "action", "marriage", "dead".  
+
