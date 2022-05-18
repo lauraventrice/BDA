@@ -126,7 +126,6 @@ object RunLSA {
       df.cache()
     } else {
       val rawMovies = sc.textFile("./wiki_movie_plots_deduped.csv", 1)
-      sc.parallelize(cleanCSV(rawMovies)).repartition(1).saveAsTextFile("a")
       val parsedLines = cleanCSV(rawMovies)
       val rawMoviesLines = sc.parallelize(parsedLines)
       val parsedMovies = parse(rawMoviesLines)
@@ -137,7 +136,7 @@ object RunLSA {
       df.repartition(1).write.option("header",value = false).csv(filePath)
     }
     val numDocs = df.count()
-    print("il numero di articoli è " + numDocs)
+    print("Number of documents: " + numDocs)
     /*
     (b) Next, add an additional column called features to your DataFrame, which contains a list of lemmatized
       text tokens extracted from each of the plot fields using the NLP-based plainTextToLemmas
@@ -217,8 +216,8 @@ object RunLSA {
     })
     moviesTermFreqs.cache()
     moviesTermFreqs.count()
-    println("MOVIES TERM FREQS: ")
-    moviesTermFreqs.foreach(x => println(x._2))
+    
+    moviesTermFreqs.foreach(x => println("TERMS FREQ:" + x._2))
 
 
     val moviesIds = moviesTermFreqs.map(_._1).zipWithUniqueId().map(_.swap).collectAsMap()
@@ -256,7 +255,7 @@ object RunLSA {
     val mat = new RowMatrix(vecs)
     val svd = mat.computeSVD(k, computeU = true)
 
-    print(svd.toString)
+    svd.U.rows.repartition(1).saveAsTextFile("U")
 
     /* (e)
       Based on the two topTermsInTopConcepts and topDocsInTopConcepts functions provided in the
@@ -296,7 +295,7 @@ object RunLSA {
           case (score, id) => (moviesIds(id), score)
         }
       }
-      lemmatized.map(movie => (movie.getString(1), 1)).reduceByKey(_ + _).sortBy(_._2).top(5).foreach(println)
+      lemmatized.map(movie => (movie.getString(1), 1)).reduceByKey(_ + _).map(genre => (genre._2, genre._1)).sortByKey(ascending=false).top(5).foreach(println)
       topDocs
     }
 
