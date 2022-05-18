@@ -13,7 +13,7 @@ import scala.collection.mutable._
 import scala.io.Source._
 
 
-object Problem1 {
+object RunLSA {
 
   // ------------------------ Parse the Wikipedia Movie Data ----------------------
 
@@ -300,8 +300,8 @@ object Problem1 {
       topDocs
     }
 
-    val topConceptTerms = topTermsInTopConcepts(svd, 12, 25)
-    val topConceptDocs = topDocsInTopConcepts(svd, 12, 25)
+    val topConceptTerms = topTermsInTopConcepts(svd, 25, 25)
+    val topConceptDocs = topDocsInTopConcepts(svd, 25, 25)
     for ((terms, docs) <- topConceptTerms.zip(topConceptDocs)) {
       println("Concept terms: " + terms.map(_._1).mkString(", "))
       println("Concept docs: " + docs.map(_._1).mkString(", "))
@@ -319,7 +319,7 @@ object Problem1 {
      */
 
     def cosineSimilarity(x: Array[Double], y: Array[Double]): Double = {
-      require(x.size == y.size)
+      require(x.length == y.length)
       dotProduct(x, y)/(magnitude(x) * magnitude(y))
     }
 
