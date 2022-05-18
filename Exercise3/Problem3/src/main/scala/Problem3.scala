@@ -3,7 +3,10 @@ import org.apache.spark.graphx._
 import org.apache.spark.ml.feature.StringIndexer
 import org.apache.spark.ml.linalg.{Vector, Vectors}
 import org.apache.spark.ml.stat.ChiSquareTest
+import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
+
+import scala.collection.mutable.ArrayBuffer
 
 
 object Problem3 {
@@ -69,7 +72,6 @@ object Problem3 {
 
     val graph = Graph(vertices, edges).cache()
 
-    /*
     //(b)
     val connectedComponentGraph: Graph[VertexId, Int] = graph.connectedComponents()
 
@@ -81,14 +83,12 @@ object Problem3 {
     val componentCounts = sortedConnectedComponents(connectedComponentGraph)
     println(componentCounts.size)
 
-     */
-
     //(c)
     // Degree-distribution
     val degrees: VertexRDD[Int] = graph.degrees.cache()
     println(degrees.map(_._2).stats())
 
-    /*
+
     def topNamesAndDegrees(degrees: VertexRDD[Int], topicGraph: Graph[Array[String], Int]): Array[(String, Int)] = {
       val namesAndDegrees = degrees.innerJoin(topicGraph.vertices) {
         (vertexId, degree, name) => (name.mkString("Array(", ", ", ")"), degree) }
@@ -98,8 +98,6 @@ object Problem3 {
 
     topNamesAndDegrees(degrees, graph).foreach(println)
 
-     */
-    /*
     // Average clustering-coefficient
     val triangleCountGraph = graph.triangleCount()
     println(triangleCountGraph.vertices.map(x => x._2).stats())
@@ -109,9 +107,6 @@ object Problem3 {
         (vertexId, triCount, maxTris) => {if (maxTris == 0) 0 else triCount / maxTris }
       }
     println(clusterCoefficientGraph.map(_._2).sum() / graph.vertices.count())
-
-
-     */
 
     /*
     // Average Path Length
@@ -148,12 +143,10 @@ object Problem3 {
         Map[VertexId, Int]()
       }
     })
-    println("A")
 
     // Start the Pregel-style form of iterative breadth-first search
     val start = Map[VertexId, Int]()
     val res = mapGraph.pregel(start)(update, iterate, mergeMaps)
-    println("B")
 
     val paths = res.vertices.flatMap {
       case (id, m) =>
@@ -166,12 +159,8 @@ object Problem3 {
     println(paths.map(_._3).filter(_ > 0).stats())
 
     val hist = paths.map(_._3).countByValue()
-    hist.toSeq.sorted.foreach(println)
+    hist.toSeq.sorted.foreach(println)*/
 
-
-     */
-
-    /*
     //(d)
     // PageRank API
     val ranks = graph.pageRank(0.001, 0.15).vertices
@@ -192,8 +181,6 @@ object Problem3 {
     println("Equal")
     println(equalVertex.length)
 
-     */
-
     //(e)
     def inRange(int: Int, string: String) = {
       val tmp = string.replace("[", "").replace(")","").split(",")
@@ -207,7 +194,24 @@ object Problem3 {
       boolean
     }
 
-    val bucket = List("[0,10)", "[10,20)", "[20,30)", "[30,40)", "[40,50)", "[50,60)", "[60,70)", "[70,80)", "[80,90)", "[90,inf)")
+    val bucket = Array("[0,10)", "[10,20)", "[20,30)", "[30,40)", "[40,50)", "[50,60)", "[60,70)", "[70,80)", "[80,90)", "[90,inf)")
+
+    def addZeroElement(rdd: RDD[(String, Vector)]) = {
+      val tmp: ArrayBuffer[String] = ArrayBuffer.empty
+      bucket.indices.foreach(int => {
+        bucket.indices.foreach(index => {
+          tmp.append(bucket(int) + "," + bucket(index))
+        })
+      })
+      val rddDiff: ArrayBuffer[(String, Vector)] = ArrayBuffer.empty
+      tmp.foreach(elem => {
+        if(rdd.filter(x => x._1.equals(elem)).count() == 0.0){
+          rddDiff.append((elem, Vectors.dense(0.0)))
+        }
+      })
+      rddDiff
+    }
+
     val degreesMap = degrees.map(elem => (elem._1, elem._2)).flatMap(x => bucket.collect{
       case i if inRange(x._2, i) => (x._1.toLong, i)
     })
@@ -216,14 +220,15 @@ object Problem3 {
       case i if inRange(x._2, i) => (x._1.toLong, i)
     })
 
-    val prova = degreesMap.join(featuresMap).groupBy(elem => elem._2).map(elem => (elem._1.toString(), Vectors.dense(elem._2.size)))
+    var rdd = degreesMap.join(featuresMap).groupBy(elem => elem._2).map(elem => (elem._1.toString(), Vectors.dense(elem._2.size)))
 
-    val a = spark.createDataFrame(prova).toDF()
+    rdd = rdd.union(sc.parallelize(addZeroElement(rdd)))
 
-    val b = new StringIndexer().setInputCol("_1").setOutputCol("label").fit(a).transform(a)
+    var dataframe = spark.createDataFrame(rdd).toDF()
 
-    val chi = ChiSquareTest.test(b, "_2", "label").head
+    dataframe = new StringIndexer().setInputCol("_1").setOutputCol("label").fit(dataframe).transform(dataframe)
+
+    val chi = ChiSquareTest.test(dataframe, "_2", "label").head
     println(s"pValues = ${chi.getAs[Vector](0)}")
-
   }
 }
