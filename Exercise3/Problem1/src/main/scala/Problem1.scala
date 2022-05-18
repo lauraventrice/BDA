@@ -121,7 +121,7 @@ object Problem1 {
 
     var schema = StructType(fields)
     if (new java.io.File(filePath).exists){ //Check if we saved the file yet
-      df = spark.read.option("header",value = true).schema(schema)
+      df = spark.read.option("header",value = false).schema(schema)
         .csv(filePath)
       df.cache()
     } else {
@@ -134,7 +134,7 @@ object Problem1 {
       df = spark.createDataFrame(parsedMovies, schema)
       df.cache()
 
-      df.repartition(1).write.option("header",value = true).csv(filePath)
+      df.repartition(1).write.option("header",value = false).csv(filePath)
     }
     val numDocs = df.count()
     print("il numero di articoli è " + numDocs)
@@ -287,9 +287,9 @@ object Problem1 {
     }
 
     def topDocsInTopConcepts(svd: SingularValueDecomposition[RowMatrix, Matrix],
-                              numConcepts: Int, numDocs: Int): Seq[Seq[((String, String), Double)]] = {
+                              numConcepts: Int, numDocs: Int): Seq[Seq[(String, Double)]] = {
       val u = svd.U
-      val topDocs = new ArrayBuffer[Seq[((String, String), Double)]]()
+      val topDocs = new ArrayBuffer[Seq[(String, Double)]]()
       for (i <- 0 until numConcepts) {
         val docWeights = u.rows.map(_.toArray(i)).zipWithUniqueId()
         topDocs += docWeights.top(numDocs).map {
