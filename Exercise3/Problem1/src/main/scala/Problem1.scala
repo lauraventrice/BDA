@@ -1,23 +1,16 @@
+import breeze.linalg.{DenseMatrix => BDenseMatrix, SparseVector => BSparseVector}
+import edu.stanford.nlp.ling.CoreAnnotations._
+import edu.stanford.nlp.pipeline._
+import org.apache.spark.mllib.linalg.distributed.RowMatrix
+import org.apache.spark.mllib.linalg.{Matrices, Matrix, SingularValueDecomposition, Vectors, Vector => MLLibVector}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.{SparkConf, SparkContext}
 
+import java.util.Properties
 import scala.collection.mutable._
 import scala.io.Source._
-import java.util.Properties
-import edu.stanford.nlp.pipeline._
-import edu.stanford.nlp.ling.CoreAnnotations._
-
-import org.apache.spark.mllib.linalg.Vectors
-import org.apache.spark.mllib.linalg.Matrix
-import org.apache.spark.mllib.linalg.SingularValueDecomposition
-
-import org.apache.spark.mllib.linalg.distributed.RowMatrix
-
-import breeze.linalg.{DenseMatrix => BDenseMatrix, SparseVector => BSparseVector}
-import org.apache.spark.mllib.linalg.{Matrices, Matrix, SingularValueDecomposition, Vectors, Vector => MLLibVector}
-
 
 
 object Problem1 {
@@ -206,8 +199,6 @@ object Problem1 {
 
     df = spark.createDataFrame(lemmatized, schema)
 
-    
-
     /*
     (d) Compute an SVD decomposition of the 134,164 movie plots contained in your DataFrame by using the following two basic parameters:
       – numFreq = 5000 for the number of frequent terms extracted from all Wikipedia articles, and
@@ -327,6 +318,26 @@ object Problem1 {
       Finally, think of 5–10 interesting keyword queries for movies and report their results.
      */
 
+    def cosineSimilarity(x: Array[Double], y: Array[Double]): Double = {
+      require(x.size == y.size)
+      dotProduct(x, y)/(magnitude(x) * magnitude(y))
+    }
+
+    def dotProduct(x: Array[Double], y: Array[Double]): Double = {
+      var sum = 0.0
+      for((a, b) <- x zip y) {
+        sum += a*b
+      }
+      sum
+    }
+
+    def magnitude(x: Array[Double]): Double = {
+      math.sqrt(x.map(i => i*i).sum)
+    }
+
+    def computeCosine(matrix: RowMatrix, matrix1: Matrix): RowMatrix = {
+      new RowMatrix(matrix.rows.map(vector => Vectors.dense(cosineSimilarity(vector.toArray, matrix1.toArray))))
+    }
 
     def termsToQueryVector(terms: scala.collection.immutable.Seq[String],
                             idTerms: scala.collection.immutable.Map[String, Int],
@@ -341,9 +352,9 @@ object Problem1 {
                              V: Matrix,
                              query: BSparseVector[Double]): Seq[(String, Double, Long)] = {
       val breezeV = new BDenseMatrix[Double](V.numRows, V.numCols, V.toArray)
-      val termRowArr = (breezeV.t * query).toArray  //TODO: DA MODIFICARE con cosine similarity
+      val termRowArr = (breezeV.t * query).toArray
       val termRowVec = Matrices.dense(termRowArr.length, 1, termRowArr)
-      val docScores = US.multiply(termRowVec)
+      val docScores = computeCosine(US, termRowVec)
       val allDocWeights = docScores.rows.map(_.toArray(0)).zipWithUniqueId()
       val title = lemmatized.map(movie => movie.getString(0))
 
