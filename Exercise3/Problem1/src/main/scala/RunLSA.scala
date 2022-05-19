@@ -84,7 +84,7 @@ object RunLSA {
     })
     val b = a.collect()
     val c = lines.collect()
-    var i = 0
+    var i = 1
     val rows: ArrayBuffer[String] = ArrayBuffer.empty
     var kk = true
     while(i < c.length){
