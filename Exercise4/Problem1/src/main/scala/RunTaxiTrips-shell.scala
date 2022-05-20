@@ -301,6 +301,36 @@ println("\nMean time taxi trips started and ended in the different borough for e
 
 countDifferentBoroughForBorough.join(sumDifferentBoroughForBorough).map{case(borough, (count, sum)) => (borough, sum/count)}.foreach(println)
 
+/*
+(d)
+Repeat steps (a) and (b), but this time return one such statistic for each day-of-the-week (Monday,
+Tuesday, ..., Sunday) over the entire period of time recorded in the data set. Which is thus the
+busiest day-of-the-week in NYC?
+ */
+
+
+
+
+/*
+(e)
+Modify the provided script such that it indeed computes the average duration between two subsequent
+trips conducted by the same taxi driver per NYC borough and per hour-of-the-day (at which the first
+trip starts). 2 Points
+Note that the current script computes these statistics only per borough. That is, please add the
+hour-of-the-day (at which the first trip starts) as an additional grouping condition to the provided
+Moodle script.
+ */
+
+/*
+(f)
+Let us assume we wish to detect typical rush hours in the NYC dataset. To do so, normalize all trip
+durations by the direct geo-spatial distance between their start and end points, and then compute
+the average normalized trip duration for each hour-of-the-day and across all taxi trips. 2 Points
+That is, for each taxi trip, compute its duration (e.g., in seconds) and divide this duration by the
+direct distance (e.g., in miles or kilometres) between the start and end point of this trip. Then again
+group the taxi trips according to the hour-of-the-day at which they started, compute their averages,
+and sort these averages (one for each hour) in descending order
+ */
 
 
 
