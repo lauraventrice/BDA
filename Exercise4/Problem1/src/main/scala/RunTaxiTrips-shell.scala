@@ -19,10 +19,6 @@ val conf = new SparkConf()
   .setMaster("local")
   .setAppName("RunTaxiTrips")
 
-//da togliere
-val sparkConf = new SparkConf().setAppName("Problem1")
-val sc = new SparkContext(sparkConf)
-
 sc.setLogLevel("ERROR")
 
 val formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
@@ -222,6 +218,13 @@ boroughDurations.filter {
 Compute the count, sum and average duration of all taxi trips which started and ended in the same
 NYC borough over the entire period of time recorded in the data set.
  */
+ 
+ def getMinutes(trip: TaxiTrip): Long = {
+  val d = new Duration(
+    trip.pickupTime,
+    trip.dropoffTime)
+  d.getStandardMinutes
+}
 
 def tripSameBorough(trip: TaxiTrip) = {
   borough(trip) == bFeatures.value.find(f => {
@@ -242,7 +245,7 @@ def tripDifferentBorough(trip: TaxiTrip) = {
 val sameBorough = taxiDone.filter(trip => tripSameBorough(trip._2))
 
 val countSameBorough = sameBorough.count()
-val sumSameBorough = sameBorough.map(trip => getHours(trip._2)).collect().sum
+val sumSameBorough = sameBorough.map(trip => getMinutes(trip._2)).reduce(_+_)
 val meanSameBorough = sumSameBorough/countSameBorough
 
 /*
@@ -251,18 +254,55 @@ Compute the count, sum and average duration of all taxi trips which started and 
 NYC borough over the entire period of time recorded in the data set.
  */
 
-val differentBorough = taxiDone.values.filter(trip => tripDifferentBorough(trip))
+val differentBorough = taxiDone.filter(trip => tripDifferentBorough(trip._2))
 
 val countDifferentBorough = differentBorough.count()
-val sumDifferentBorough = differentBorough.map(trip => getHours(trip)).collect().sum
+val sumDifferentBorough = differentBorough.map(trip => getMinutes(trip._2)).reduce(_+_)
 val meanDifferentBorough = sumDifferentBorough/countDifferentBorough
 
 
 /*
 (c)
 Repeat steps (a) and (b), but this time return one such statistic for each borough individually
-(Brooklyn, Manhattan, ...) over the entire period of time recorded in the data set. Which is thus the
-busiest borough in NYC?
+(Brooklyn, Manhattan, ...) over the entire period of time recorded in the data set. Which is thus the busiest borough in NYC?
  */
 
-val countEachBoroughSame = sameBorough.values.map(trip => borough(trip)).repartition()
+//count
+println("\nCount taxi trips started and ended in the same borough for each borough:")
+val countSameBoroughForBorough = sameBorough.map(trip => (borough(trip._2), 1L)).reduceByKey(_+_)
+
+countSameBoroughForBorough.foreach(println)
+
+println("\nCount taxi trips started and ended in the different borough for each borough::")
+val countDifferentBoroughForBorough = differentBorough.map(trip => (borough(trip._2), 1L)).reduceByKey(_+_)
+
+countDifferentBoroughForBorough.foreach(println)
+
+//sum
+println("\nSum time taxi trips started and ended in the same borough for each borough: ")
+
+val sumSameBoroughForBorough = sameBorough.map(trip => (borough(trip._2), getMinutes(trip._2))).reduceByKey(_ + _)
+
+sumSameBoroughForBorough.foreach(println)
+
+println("\nSum time taxi trips started and ended in the different borough for each borough:")
+val sumDifferentBoroughForBorough = differentBorough.map(trip => (borough(trip._2), getMinutes(trip._2))).reduceByKey(_ + _)
+
+sumDifferentBoroughForBorough.foreach(println)
+
+//mean
+
+println("\nMean time taxi trips started and ended in the same borough for each borough:")
+
+countSameBoroughForBorough.join(sumSameBoroughForBorough).map{case(borough, (count, sum)) => (borough, sum/count)}.foreach(println)
+
+
+println("\nMean time taxi trips started and ended in the different borough for each borough:")
+
+countDifferentBoroughForBorough.join(sumDifferentBoroughForBorough).map{case(borough, (count, sum)) => (borough, sum/count)}.foreach(println)
+
+
+
+
+
+
