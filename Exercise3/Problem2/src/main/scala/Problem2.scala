@@ -49,6 +49,9 @@ object Problem2 {
     sc.setLogLevel("ERROR")
 
     //(a)
+    // Remove excess spaces from street names
+    def cleanString(string: String) = string.split(" ").mkString("", " ", "")
+
     // TODO controlla se si può migliorare
     def parse(line: String) = {
       val fields = line.split(",", 7)
@@ -57,10 +60,10 @@ object Problem2 {
       if(!features.indexOf("\"").equals(-1)) {
         location = features.substring(features.indexOf("\""), features.lastIndexOf("\"") + 1)
       }
-      val others = features.replace(location, "").splitAt(1)._2.split(",")
-      val onStreet = others(0).split(" ").mkString("", " ", "")
-      val crossStreet = others(1).split(" ").mkString("", " ", "")
-      val offStreet = others(2).split(" ").mkString("", " ", "")
+      val others = features.replace(location, "").substring(1).split(",")
+      val onStreet = cleanString(others(0))
+      val crossStreet = cleanString(others(1))
+      val offStreet = cleanString(others(2))
       var vehicle2 = ""
       if(others.length > 18) vehicle2 = others(18)
       new Collision(fields(0), fields(1), fields(2), fields(4), fields(5), onStreet, crossStreet, offStreet,
@@ -73,21 +76,23 @@ object Problem2 {
     /*
     Find the most dangerous street crossings according to the number of people that were injured or even killed
     in collisions which are recorded within the data set. Return tuples of (BOROUGH, ON STREET NAME, CROSS STREET NAME)
-    together with the number of people involved (either injured or killed) and a list of the 5 most common contributing
-    factors (of either one of the two vehicles involved in a collision) for each such crossing. Sort all crossings in
+    together with the number of people involved (either injured or killed) and
+    // TODO che vogliono qua?
+    a list of the 5 most common contributingfactors (of either one of the two vehicles involved in a collision) for each such crossing.
+    Sort all crossings in
     descending order of the total number of people involved in these accidents and report the top-25 most dangerous
     crossings.
      */
     //(b)
-    // TODO trasforma quell'Iterable (string, string, string, int, int) in
-    // TODO (string, string, string, somma degli int, somma degli int)
+    // TODO ci sono anche le righe che non hanno nessuna delle tre informazioni (da eliminare?)
     def mostDangerousStreet(rdd: RDD[Collision]) = {
       rdd.map(x => (x.boroughCollision, x.onStreetNameCollision, x.crossStreetNameCollision,
-          x.numberOfPersonInjuredCollision, x.numberOfPersonKilledCollision))
-        .groupBy(x => (x._1, x._2, x._3))
-        .map(x => x._2)
+          x.numberOfPersonInjuredCollision + x.numberOfPersonKilledCollision))
+        .map(x => ((x._1, x._2, x._3), x._4))
+        .reduceByKey(_ + _)
+
     }
 
-    mostDangerousStreet(collisions).take(5).foreach(println)
+    mostDangerousStreet(collisions).sortBy(x => x._2, ascending = false).take(5).foreach(println)
   }
 }
