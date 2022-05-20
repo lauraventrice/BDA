@@ -19,6 +19,10 @@ val conf = new SparkConf()
   .setMaster("local")
   .setAppName("RunTaxiTrips")
 
+//da togliere
+val sparkConf = new SparkConf().setAppName("Problem1")
+val sc = new SparkContext(sparkConf)
+
 sc.setLogLevel("ERROR")
 
 val formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
@@ -211,5 +215,54 @@ boroughDurations.filter {
 }.mapValues(d => {
   val s = new StatCounter()
   s.merge(d.getStandardSeconds)
-}).
-  reduceByKey((a, b) => a.merge(b)).collect().foreach(println)
+}).reduceByKey((a, b) => a.merge(b)).collect().foreach(println)
+
+/*
+(a)
+Compute the count, sum and average duration of all taxi trips which started and ended in the same
+NYC borough over the entire period of time recorded in the data set.
+ */
+
+def tripSameBorough(trip: TaxiTrip) = {
+  borough(trip) == bFeatures.value.find(f => {
+    f.geometry.contains(trip.pickupLoc)
+  }).map(f => {
+    f("borough").convertTo[String]
+  })
+}
+
+def tripDifferentBorough(trip: TaxiTrip) = {
+  borough(trip) != bFeatures.value.find(f => {
+    f.geometry.contains(trip.pickupLoc)
+  }).map(f => {
+    f("borough").convertTo[String]
+  })
+}
+
+val sameBorough = taxiDone.filter(trip => tripSameBorough(trip._2))
+
+val countSameBorough = sameBorough.count()
+val sumSameBorough = sameBorough.map(trip => getHours(trip._2)).collect().sum
+val meanSameBorough = sumSameBorough/countSameBorough
+
+/*
+(b)
+Compute the count, sum and average duration of all taxi trips which started and ended in a different
+NYC borough over the entire period of time recorded in the data set.
+ */
+
+val differentBorough = taxiDone.values.filter(trip => tripDifferentBorough(trip))
+
+val countDifferentBorough = differentBorough.count()
+val sumDifferentBorough = differentBorough.map(trip => getHours(trip)).collect().sum
+val meanDifferentBorough = sumDifferentBorough/countDifferentBorough
+
+
+/*
+(c)
+Repeat steps (a) and (b), but this time return one such statistic for each borough individually
+(Brooklyn, Manhattan, ...) over the entire period of time recorded in the data set. Which is thus the
+busiest borough in NYC?
+ */
+
+val countEachBoroughSame = sameBorough.values.map(trip => borough(trip)).repartition()
