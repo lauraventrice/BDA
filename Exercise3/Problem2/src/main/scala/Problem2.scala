@@ -1,17 +1,19 @@
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
-// TODO controlla se date può essere tipo Date e time tipo Time
+import java.time.{LocalDate, LocalTime}
+import java.time.format.DateTimeFormatter
+
 // TODO latitude and longitude String(?)
 // TODO togli la prima riga col nome delle features (dal parsing) altrimenti errore
 
-class Collision(date: String, time: String, borough: String, latitude: String, longitude: String, onStreet: String,
+class Collision(date: LocalDate, time: LocalTime, borough: String, latitude: String, longitude: String, onStreet: String,
                 crossStreet: String, offStreet: String, personInjured: Int, personKilled: Int,
                 contributingFactor1: String, contributingFactor2: String,
                 vehicle1: String, vehicle2: String) extends java.io.Serializable {
 
-  val dateCollision: String = date
-  val timeCollision: String = time
+  val dateCollision: LocalDate = date
+  val timeCollision: LocalTime = time
   val boroughCollision: String = borough
   val latitudeCollision: String = latitude
   val longitudeCollision: String = longitude
@@ -52,9 +54,16 @@ object Problem2 {
     // Remove excess spaces from street names
     def cleanString(string: String) = string.split(" ").mkString("", " ", "")
 
+    def getDate(date: String) = LocalDate.parse(date,DateTimeFormatter.ofPattern("MM/dd/yyyy"))
+
+    def getTime(time: String) = LocalTime.parse(time, DateTimeFormatter.ofPattern("HH:mm"))
+
     // TODO controlla se si può migliorare
     def parse(line: String) = {
       val fields = line.split(",", 7)
+      val date = getDate(fields(0))
+      if(fields(1).length == 4) fields(1) = "0" + fields(1)
+      val time = getTime(fields(1))
       val features = fields(6)
       var location = ""
       if(!features.indexOf("\"").equals(-1)) {
@@ -66,7 +75,7 @@ object Problem2 {
       val offStreet = cleanString(others(2))
       var vehicle2 = ""
       if(others.length > 18) vehicle2 = others(18)
-      new Collision(fields(0), fields(1), fields(2), fields(4), fields(5), onStreet, crossStreet, offStreet,
+      new Collision(date, time, fields(2), fields(4), fields(5), onStreet, crossStreet, offStreet,
         others(3).toInt, others(4).toInt, others(11), others(12), others(17), vehicle2)
     }
 
@@ -82,17 +91,50 @@ object Problem2 {
     Sort all crossings in
     descending order of the total number of people involved in these accidents and report the top-25 most dangerous
     crossings.
-     */
+    */
+
     //(b)
     // TODO ci sono anche le righe che non hanno nessuna delle tre informazioni (da eliminare?)
     def mostDangerousStreet(rdd: RDD[Collision]) = {
-      rdd.map(x => (x.boroughCollision, x.onStreetNameCollision, x.crossStreetNameCollision,
+      rdd.map(x => ((x.boroughCollision, x.onStreetNameCollision, x.crossStreetNameCollision),
           x.numberOfPersonInjuredCollision + x.numberOfPersonKilledCollision))
-        .map(x => ((x._1, x._2, x._3), x._4))
         .reduceByKey(_ + _)
 
     }
 
     mostDangerousStreet(collisions).sortBy(x => x._2, ascending = false).take(5).foreach(println)
+
+    // TODO vedi se puoi usare top al posto di take per usare gli rdd invece degli array
+    //(c)
+    def mostDangerousTime(rdd: RDD[Collision]) = {
+      rdd.map(x => ((x.dateCollision.getDayOfWeek, x.timeCollision.getHour),
+        x.numberOfPersonInjuredCollision + x.numberOfPersonKilledCollision))
+        .reduceByKey(_ + _)
+    }
+
+    mostDangerousTime(collisions).sortBy(x => x._2, ascending = false).take(25).foreach(println)
+
+    /*
+    // TODO qui vogliono le coppia di veicoli che fanno gli incidenti oppure i veicoli che fanno più incidenti?
+    // TODO per ora è solo coppia di veicoli (potrei mettere entrambi)
+    Finally, let us investigate if any type of vehicle is particularly likely involved in accidents.
+    Aggregate all accidents by their VEHICLE TYPE CODE (either 1 or 2) and sort the various vehicle types in
+    descending order of the number of accidents they were involved in. Report the top-5 types of vehicles together
+    with their numbers of accidents.
+     */
+    //(d)
+    def mostVehiclesAccidents(rdd: RDD[Collision]) = {
+      rdd.map(x => ((x.vehicleTypeCode1, x.vehicleTypeCode2), 1))
+        .reduceByKey(_ + _)
+    }
+
+    mostVehiclesAccidents(collisions).sortBy(x => x._2, ascending = false).take(5).foreach(println)
   }
+
+  /*
+  Repeat the above steps (b)–(d), but this time compute the results for the number of persons killed and
+  the number of persons injured individually. For each step, report the top-5 results which have the highest
+  differences between the number of persons killed and the number of persons injured, respectively
+   */
+  //(e)
 }
