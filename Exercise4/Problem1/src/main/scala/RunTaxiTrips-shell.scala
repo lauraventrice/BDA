@@ -326,14 +326,34 @@ def hour_of_the_day(t1: TaxiTrip, t2: TaxiTrip) = {
   (day, dur)
 }
 
-def averageDurationBetween(list: List[TaxiTrip]) = {
-  val sum = 0.0
-  val count = 0.0
-  val it = list.iterator
-  it.foldLeft(0.0)()
+val meanBorough = boroughDurations.map {
+  case (b, d) => (b, (d, 1))
+}.reduceByKey {
+  case ((sum1,  count1), (sum2, count2)) =>
+    (sum1.plus(sum2), count1 + count2)
+}.mapValues {
+  case (sum, count) => sum.getStandardMinutes.toDouble/count.toDouble
 }
 
-sessions.mapValues(list => average)
+meanBorough.foreach(println)
+
+val hourOfTheDayDurations: RDD[(String, Duration)] =
+  sessions.values.flatMap(trips => {
+    val iter: Iterator[Seq[TaxiTrip]] = trips.sliding(2)
+    val viter = iter.filter(_.size == 2)
+    viter.map(p => hour_of_the_day(p(0), p(1)))
+  }).cache()
+
+val meanHourOfTheDay = hourOfTheDayDurations.map {
+  case (day, dur) => (day, (dur, 1))
+}.reduceByKey {
+  case ((sum1, count1), (sum2, count2)) =>
+    (sum1.plus(sum2), count1 + count2)
+}.mapValues {
+  case (sum, count) => sum.getStandardMinutes.toDouble/count.toDouble
+}
+
+meanHourOfTheDay.foreach(println)
 
 /*
 (f)
@@ -346,7 +366,9 @@ group the taxi trips according to the hour-of-the-day at which they started, com
 and sort these averages (one for each hour) in descending order
  */
 
+//Normalizzare la durata rispetto alla distanza tra gli spot di partenza e arrivo
 
 
+//media durata per ogni ora del giorno e rispetto tutti i trip
 
 
