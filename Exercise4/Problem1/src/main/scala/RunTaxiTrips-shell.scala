@@ -18,8 +18,8 @@ val conf = new SparkConf()
   .setMaster("local")
   .setAppName("RunTaxiTrips")
 
-//val sparkConf = new SparkConf()
-//val sc = new SparkContext(sparkConf)
+val sparkConf = new SparkConf()
+val sc = new SparkContext(sparkConf)
 sc.setLogLevel("ERROR")
 
 val formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
@@ -250,7 +250,7 @@ val statsSameBoroughDurations = sameBoroughDurations.filter(d => d>=0).map(d => 
   s.merge(d)
 }).reduce((a, b) => a.merge(b))
 
-println("SUM: ", statsSameBoroughDurations.sum)
+println("SUM: " + statsSameBoroughDurations.sum)
 
 
 /*
@@ -267,26 +267,13 @@ val statsDifferentBoroughDurations = differentBoroughDurations.filter(d => d>=0)
   s.merge(d)
 }).reduce((a, b) => a.merge(b))
 
-println("SUM: ", statsDifferentBoroughDurations.sum)
+println("SUM: " + statsDifferentBoroughDurations.sum)
 
 /*
 (c)
 Repeat steps (a) and (b), but this time return one such statistic for each borough individually
 (Brooklyn, Manhattan, ...) over the entire period of time recorded in the data set. Which is thus the busiest borough in NYC?
  */
-/*
-println("\nCount taxi trips for each borough:")
-val countForBorough = taxiDone.map(trip => (borough(trip._2), 1L)).reduceByKey(_+_)
-countForBorough.foreach(println)
-
-println("\nSum duration taxi trips for each borough: ")
-val sumForBorough = taxiDone.map(trip => (borough(trip._2), getMinutes(trip._2))).reduceByKey(_ + _)
-sumForBorough.foreach(println)
-
-println("\nMean duration taxi trips for each borough:")
-countForBorough.join(sumForBorough).map{case(borough, (count, sum)) => (borough, sum/count)}.foreach(println)
-
-*/
 
 val forBoroughDurations = taxiDone.map(trip => (borough(trip._2), getMinutes(trip._2)))
 
@@ -310,18 +297,6 @@ busiest day-of-the-week in NYC?
 def getDay(trip: TaxiTrip) = {
   trip.pickupTime.dayOfWeek().getAsText(Locale.getDefault)
 }
-/*
-println("\nCount taxi trips for each day:")
-val countForDay = taxiDone.map(trip => (getDay(trip._2), 1L)).reduceByKey(_+_)
-
-println("\nSum duration taxi trips for each day: ")
-val sumForDay = taxiDone.map(trip => (getDay(trip._2), getMinutes(trip._2))).reduceByKey(_ + _)
-sumForDay.foreach(println)
-
-println("\nMean duration taxi trips for each day:")
-countForDay.join(sumForDay).map{case(day, (count, sum)) => (day, sum/count)}.foreach(println)
-
-*/
 
 val forDayDurations = taxiDone.map(trip => (getDay(trip._2), getMinutes(trip._2)))
 
