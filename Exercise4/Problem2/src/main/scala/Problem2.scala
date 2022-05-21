@@ -4,6 +4,10 @@ import org.apache.spark.{SparkConf, SparkContext}
 import java.time.{LocalDate, LocalTime}
 import java.time.format.DateTimeFormatter
 
+import com.esri.core.geometry.{ GeometryEngine, SpatialReference, Geometry, Point }
+import GeoJsonProtocol._
+import spray.json._
+
 class Collision(date: LocalDate, time: LocalTime, borough: String, latitude: String, longitude: String, onStreet: String,
                 crossStreet: String, offStreet: String, personInjured: Int, personKilled: Int,
                 contributingFactor1: String, contributingFactor2: String,
@@ -11,7 +15,7 @@ class Collision(date: LocalDate, time: LocalTime, borough: String, latitude: Str
 
   val dateCollision: LocalDate = date
   val timeCollision: LocalTime = time
-  val boroughCollision: String = borough
+  var boroughCollision: String = borough
   val latitudeCollision: String = latitude
   val longitudeCollision: String = longitude
   val locationCollision: String = getLocation(latitude, longitude)
@@ -30,24 +34,21 @@ class Collision(date: LocalDate, time: LocalTime, borough: String, latitude: Str
     "(" + latitude + ", " + longitude + ")"
   }
 
-
-  // TODO alla fine puoi cancellare questo
-  override def toString: String = {
-    "Date: " + dateCollision + ", Time: " + timeCollision + ", Borough: " + boroughCollision +
-      ", Latitude: " + latitudeCollision + ", Longitude: " + longitudeCollision + ", Location: " + locationCollision +
-      ", OnStreet: " + onStreetNameCollision + ", CrossStreet: " + crossStreetNameCollision +
-      ", OffStreet: " + offStreetNameCollision + ", PersonInjured: " + numberOfPersonInjuredCollision +
-      ", PersonKilled: " + numberOfPersonKilledCollision + ", Contributing1: " + contributingFactorVehicle1 +
-      ", Contributing2: " + contributingFactorVehicle2 + ", Vehicle1: " + vehicleTypeCode1 +
-      ", Vehicle2: " + vehicleTypeCode2
-  }
-
   // Filter wrong collision
   def checkWrongCollision(): Boolean = {
     numberOfPersonKilledCollision < 0 || numberOfPersonInjuredCollision < 0 ||
       dateCollision.isBefore(LocalDate.parse("01/01/2013", DateTimeFormatter.ofPattern("MM/dd/yyyy"))) ||
       dateCollision.isAfter(LocalDate.parse("01/31/2013", DateTimeFormatter.ofPattern("MM/dd/yyyy"))) ||
       (longitude.equals("") && latitude.equals("") && borough.equals(""))
+  }
+
+  // Find borough from the coordinates
+  def addBorough(features: FeatureCollection) = {
+    if(boroughCollision.equals("") && (!longitudeCollision.equals("") || !latitudeCollision.equals(""))) {
+      val borough = features.find(f => f.geometry.contains(new Point(longitudeCollision.toDouble, latitudeCollision.toDouble)))
+      if (borough != None) boroughCollision = borough.get("borough").toString.toUpperCase().replace("\"", "")
+    }
+    this
   }
 }
 
@@ -91,13 +92,14 @@ object Problem2 {
       }
     }
 
-    // TODO Also filter out useless or meaningless lines from your data set
-    // TODO aggiungi trovare i borough dalle coordinate
-    val collisions = sc.textFile("NYPD_Motor_Vehicle_Collisions.csv").map(parse)
+    val geojson = scala.io.Source.fromFile("./Data/nyc-borough-boundaries-polygon.geojson")
+      .mkString.parseJson.convertTo[FeatureCollection]
+
+    val collisions = sc.textFile("NYPD_Motor_Vehicle_Collisions.csv").map(parse).map(_.addBorough(geojson))
       .filter(!_.checkWrongCollision()).cache()
 
+
     //(b)
-    // TODO ci sono anche le righe che non hanno nessuna delle tre informazioni (da eliminare?)
     def mostDangerousStreet(rdd: RDD[Collision]) = {
       rdd.map(x => ((x.boroughCollision, x.onStreetNameCollision, x.crossStreetNameCollision),
           x.numberOfPersonInjuredCollision + x.numberOfPersonKilledCollision))
@@ -127,6 +129,7 @@ object Problem2 {
         .reduceByKey(_ + _)
     }
 
+    println("Most Dangerous Time:")
     mostDangerousTime(collisions).sortBy(_._2, ascending = false).take(25).foreach(println)
 
     //(d)
@@ -135,6 +138,7 @@ object Problem2 {
         .reduceByKey(_ + _)
     }
 
+    println("Most Vehicles Accidents:")
     mostVehiclesAccidents(collisions).sortBy(x => x._2, ascending = false).take(5).foreach(println)
 
     //(e)
@@ -144,6 +148,7 @@ object Problem2 {
         .reduceByKey(_ + _)
     }
 
+    println("Most Dangerous Street Difference:")
     mostDangerousStreetDifference(collisions).sortBy(_._2, ascending = false).take(5).foreach(println)
 
     def mostDangerousTimeDifference(rdd: RDD[Collision]) = {
@@ -152,6 +157,7 @@ object Problem2 {
         .reduceByKey(_ + _)
     }
 
+    println("Most Dangerous Time Difference:")
     mostDangerousTimeDifference(collisions).sortBy(x => x._2, ascending = false).take(5).foreach(println)
   }
 }
