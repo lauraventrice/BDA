@@ -1,6 +1,7 @@
 import com.esri.core.geometry.{Geometry, GeometryEngine, Point, SpatialReference}
 import com.github.nscala_time.time.Imports.{DateTime, Duration}
 import GeoJsonProtocol._
+import breeze.numerics.{pow, sqrt}
 
 import java.text.SimpleDateFormat
 import org.apache.spark.{HashPartitioner, Partitioner}
@@ -368,7 +369,22 @@ and sort these averages (one for each hour) in descending order
 
 //Normalizzare la durata rispetto alla distanza tra gli spot di partenza e arrivo
 
+def distance(point1: Point, point2: Point) = {
+  sqrt(pow(point1.getX - point2.getX, 2) + pow(point1.getY - point2.getY, 2))
+}
 
 //media durata per ogni ora del giorno e rispetto tutti i trip
+val start =  taxiDone.map(elem => (elem._2.pickupTime.hourOfDay().getAsText,
+  new Duration(elem._2.pickupTime, elem._2.dropoffTime).getStandardSeconds.toDouble/distance(elem._2.pickupLoc, elem._2.dropoffLoc)))
+
+val result = start.map {
+  case (hour, dur) => (hour, (dur, 1))
+}.reduceByKey {
+  case ((sum1, count1), (sum2, count2)) =>
+    (sum1 + sum2, count1 + count2)
+}.mapValues {
+  case (sum, count) => sum/count.toDouble
+}.sortBy(_._2)
+
 
 
