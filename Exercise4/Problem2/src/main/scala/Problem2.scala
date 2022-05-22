@@ -22,8 +22,8 @@ class Collision(date: LocalDate, time: LocalTime, borough: String, latitude: Str
   val onStreetNameCollision: String = onStreet
   val crossStreetNameCollision: String = crossStreet
   val offStreetNameCollision: String = offStreet
-  val numberOfPersonInjuredCollision: Int = personInjured
-  val numberOfPersonKilledCollision: Int = personKilled
+  val numberOfPersonsInjuredCollision: Int = personInjured
+  val numberOfPersonsKilledCollision: Int = personKilled
   val contributingFactorVehicle1: String = contributingFactor1
   val contributingFactorVehicle2: String = contributingFactor2
   val vehicleTypeCode1: String = vehicle1
@@ -36,10 +36,12 @@ class Collision(date: LocalDate, time: LocalTime, borough: String, latitude: Str
 
   // Filter wrong collision
   def checkWrongCollision(): Boolean = {
-    numberOfPersonKilledCollision < 0 || numberOfPersonInjuredCollision < 0 ||
+    numberOfPersonsKilledCollision < 0 || numberOfPersonsInjuredCollision < 0 ||
       dateCollision.isBefore(LocalDate.parse("01/01/2013", DateTimeFormatter.ofPattern("MM/dd/yyyy"))) ||
       dateCollision.isAfter(LocalDate.parse("01/31/2013", DateTimeFormatter.ofPattern("MM/dd/yyyy"))) ||
-      (longitude.equals("") && latitude.equals("") && borough.equals(""))
+      (longitudeCollision.equals("") && latitudeCollision.equals("") && boroughCollision.equals("")) /*||
+      (boroughCollision.equals("") || onStreetNameCollision.equals("") || crossStreetNameCollision.equals("")) ||
+      (contributingFactorVehicle2.equals("Unspecified") || contributingFactorVehicle2.equals("Unspecified"))*/
   }
 
   // Find borough from the coordinates
@@ -102,7 +104,7 @@ object Problem2 {
     //(b)
     def mostDangerousStreet(rdd: RDD[Collision]) = {
       rdd.map(x => ((x.boroughCollision, x.onStreetNameCollision, x.crossStreetNameCollision),
-          x.numberOfPersonInjuredCollision + x.numberOfPersonKilledCollision))
+          x.numberOfPersonsInjuredCollision + x.numberOfPersonsKilledCollision))
         .reduceByKey(_ + _)
     }
 
@@ -125,7 +127,7 @@ object Problem2 {
     //(c)
     def mostDangerousTime(rdd: RDD[Collision]) = {
       rdd.map(x => ((x.dateCollision.getDayOfWeek, x.timeCollision.getHour),
-        x.numberOfPersonInjuredCollision + x.numberOfPersonKilledCollision))
+        x.numberOfPersonsInjuredCollision + x.numberOfPersonsKilledCollision))
         .reduceByKey(_ + _)
     }
 
@@ -144,7 +146,7 @@ object Problem2 {
     //(e)
     def mostDangerousStreetDifference(rdd: RDD[Collision]): RDD[((String, String, String), Int)] = {
       rdd.map(x => ((x.boroughCollision, x.onStreetNameCollision, x.crossStreetNameCollision),
-        (x.numberOfPersonInjuredCollision - x.numberOfPersonKilledCollision).abs))
+        (x.numberOfPersonsInjuredCollision - x.numberOfPersonsKilledCollision).abs))
         .reduceByKey(_ + _)
     }
 
@@ -153,7 +155,7 @@ object Problem2 {
 
     def mostDangerousTimeDifference(rdd: RDD[Collision]) = {
       rdd.map(x => ((x.dateCollision.getDayOfWeek, x.timeCollision.getHour),
-        x.numberOfPersonInjuredCollision - x.numberOfPersonKilledCollision))
+        x.numberOfPersonsInjuredCollision - x.numberOfPersonsKilledCollision))
         .reduceByKey(_ + _)
     }
 

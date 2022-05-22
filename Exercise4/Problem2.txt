@@ -1,0 +1,56 @@
+# How to run
+I added the jar files available on moodle in my SPARK_HOME, then I used the following commands:
+scalac -classpath $(echo $SPARK_HOME/jars/*.jar | tr ' ' ':') Problem2.scala 
+jar -cvf ./Problem2.jar *.class
+rm *.class
+
+# Explanation
+(a)
+We created a new scala class called Collision. It takes different parameters about the collisions. It also has some methods:
+- getLocation -> parse location from latitude and longitude in order to do not pass another parameter which is obtainable from these two values
+- checkWrongCollision -> it is used to filter wrong collision that is a collision with number of people involved less than 0, a date before the 1st of January and after the 31th of January, and if it has longitude, latitude and borough equal to "". (Here, there are also two conditions commented, this is because it is just to see some better results in some questions, but they are not every time useful, because they delete a lot of collisions which can be convenient to analyze in some other steps)
+- addBorough -> this method find the borough of the collision from its longitude and latitude in order to add information to the dataset
+
+So, to take the RDD[Collision] we parsed the csv file, then we mapped each collision to add the borough information to those who needed it and finally we filtered the wrong collisions.
+
+(b)
+In order to find the most dangerous street for number of people involved in a collision, we mapped the rdd has follow:
+((Borough, On Street, Cross Street), People Killed + People Injured)
+And then we reduced by key this rdd (they key is the crossing) and we obtain the number of people involved in a collision for each crossing.
+
+Then, for the most common contributing factors, we mapped the rdd two times: the first time to obtain the vehicle 1 and the second time for vehicle 2. Next, we used the union function to these and we group the rdd by the street e we used the size of the iterable object to define the number of time that we found that contributing factor in that street.
+
+(c)
+To obtain the most dangerous time, we mapped the rdd as follow:
+((Day of the week, Hour of the day), People Killed + People Injured)
+In this way, as the first part of part (b) we obtained what we want we a reduce by key.
+
+(d)
+Here, we aggregated all accidents by their VEHICLE TYPE CODE and we obtained the tuple of the most frequently vehicles in the accidents.
+
+(e)
+We needed to find the highest differences between the number of people killed and the number of people injured with the previous steps. In order to do it, we did not use to different rdd (one for injured people and one for killed people), instead we just use one rdd with the difference between these two numbers.
+
+We did the part (b) and (c) with this logic and we obtain the higher difference between the two numbers, but not for step (d), because it does not depend by the number of people involved.
+
+ 
+
+From the results we can say that the most dangerous streets are in queens, but that the most dangerous street if we filter also the information without all the three values is:
+((BRONX,BUSSING AVENUE,DIGNEY AVENUE),9)
+
+The most common contributing factor is:
+(((QUEENS,,),Unspecified),789)
+but if we filter also the information without all the three values and with the "unspecified" contributing factor the result is:
+(((BRONX,BRUCKNER BOULEVARD,BROWN PLACE),Other Vehicular),6)
+
+The most dangerous day of the week is THURSDAY with the first and the second place on the podium:
+- the first one at hour 15 with 60 collisions
+- the second one at hour 18 with 53 collisions
+- the third one, on a par with the previous one, is WEDNESDAY at 18
+We can say that there are more collisions in the afternoon rather than in the morning
+
+The most accidents are between two passenger vehicle, 3587 times.
+
+The most difference between injured and killed people is in queen with 190 injured people and 2 killed people.
+
+The most difference between injured and killed people is on THURSDAY at 18, because all the people are just injured, no one is killed.
