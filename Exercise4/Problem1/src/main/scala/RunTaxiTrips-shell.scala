@@ -20,8 +20,8 @@ val conf = new SparkConf()
   .setMaster("local")
   .setAppName("RunTaxiTrips")
 
-val sparkConf = new SparkConf()
-val sc = new SparkContext(sparkConf)
+//val sparkConf = new SparkConf()
+//val sc = new SparkContext(sparkConf)
 sc.setLogLevel("ERROR")
 
 val formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
@@ -368,11 +368,8 @@ group the taxi trips according to the hour-of-the-day at which they started, com
 and sort these averages (one for each hour) in descending order
  */
 
-//Normalizzare la durata rispetto alla distanza tra gli spot di partenza e arrivo
-
-
 def distance(point1: Point, point2: Point) = {
-  2*6.371*asin(sqrt(pow(sin((point2.getX - point1.getX)/2), 2) + cos(point1.getX) * cos(point2.getX) * pow(sin((point2.getY - point1.getY)/2), 2)))
+  2*6371*asin(sqrt(pow(sin((point2.getX - point1.getX)/2), 2) + cos(point1.getX) * cos(point2.getX) * pow(sin((point2.getY - point1.getY)/2), 2)))
 }
 
 def getSeconds(trip: TaxiTrip) = {
@@ -381,9 +378,9 @@ def getSeconds(trip: TaxiTrip) = {
     trip.dropoffTime)
   d.getStandardSeconds
 }
-//media durata per ogni ora del giorno e rispetto tutti i trip
+
 val start =  taxiDone.map(elem => (elem._2.pickupTime.hourOfDay().getAsText,
-  getSeconds(elem._2).toDouble/distance(elem._2.pickupLoc, elem._2.dropoffLoc)))
+  getSeconds(elem._2).toDouble/distance(elem._2.pickupLoc, elem._2.dropoffLoc))).filter(trip => !(trip._2.isNaN || trip._2.isInfinity))
 
 val result = start.map {
   case (hour, dur) => (hour, (dur, 1))
