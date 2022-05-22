@@ -1,0 +1,121 @@
+#How to run
+
+spark-shell --jars ./Jars/esri-geometry-api-1.2.1.jar,./Jars/geojson2esri.jar,./Jars/joda-time-2.9.9.jar,./Jars/nscala-time_2.12-2.30.0.jar,./Jars/spray-json_2.12-1.3.6.jar
+
+#Explanation and results 
+
+(a)
+We used 2 functions: 
+	1) tripSameBorough which returns if a trip started and ended in the same NYC borough, in order to filter all the trips in which we are interested;
+	2) getMinutes which returns the trip duration in minutes from pickUpTime and dropoffTime in order to compute sum and mean duration of all trips. 
+	
+The result with StatCounter are: 
+(count: 128519, mean: 9,576444, stdev: 6,079379, max: 161,000000, min: 0,000000)
+ and sum: 1230755.0000000005
+
+(b)
+We used in addiction to getMinutes and: 
+	1) tripDifferentBorough which return if a trip started and ended in different NYC borough, in order to filter all the trips in which we are intersted.
+	
+The result with StatCounter are: 
+(count: 16283, mean: 23,634035, stdev: 11,348326, max: 134,000000, min: 0,000000)
+and sum: 384833.0000000001
+
+(c)
+We use the map function on taxiDone using borough function and getMinutes. Next we used StatCounter for each borough, and the result are the following: 
+
+(Some(Staten Island),(count: 34, mean: 33,205882, stdev: 15,810978, max: 59,000000, min: 0,000000)), sum: 1129.0000000000005
+(Some(Manhattan),(count: 129460, mean: 10,176889, stdev: 7,042565, max: 161,000000, min: 0,000000)), sum: 1317500.0000000002
+(Some(Queens),(count: 6742, mean: 20,524028, stdev: 12,377682, max: 152,000000, min: 0,000000)), sum: 138372.99999999997
+(None,(count: 686, mean: 19,967930, stdev: 15,417763, max: 86,000000, min: 0,000000)), sum: 13698.000000000004
+(Some(Brooklyn),(count: 7164, mean: 18,163596, stdev: 10,613484, max: 110,000000, min: 0,000000)), sum: 130124.00000000006
+(Some(Bronx),(count: 716, mean: 20,620112, stdev: 9,811966, max: 75,000000, min: 0,000000)), sum: 14763.999999999998
+ 
+ The busiest borough is Manhattan. 
+
+(d)
+In addiction to the other functions we defined: 
+	1) getDay which return the day of the week from a trip
+The result with StatCounter are: 
+
+(sunday,(count: 17263, mean: 10,687945, stdev: 7,962615, max: 152,000000, min: 0,000000)), sum: 184505.99999999994
+(friday,(count: 20477, mean: 11,851101, stdev: 8,837115, max: 104,000000, min: 0,000000)), sum: 242675.0000000001
+(thursday,(count: 24641, mean: 11,483787, stdev: 8,481880, max: 92,000000, min: 0,000000)), sum: 282971.9999999999
+(tuesday,(count: 22814, mean: 11,083589, stdev: 7,957445, max: 161,000000, min: 0,000000)), sum: 252861.0
+(wednesday,(count: 22976, mean: 11,283383, stdev: 8,230737, max: 121,000000, min: 0,000000)), sum: 259246.9999999999
+(monday,(count: 16549, mean: 10,715934, stdev: 8,036699, max: 134,000000, min: 0,000000)), sum: 177337.99999999994
+(saturday,(count: 20082, mean: 10,755353, stdev: 7,545028, max: 106,000000, min: 0,000000)), sum: 215988.99999999997
+
+The busiest day of the week is thursday. 
+
+(e)
+For the average duration between two subsequent trips for borough, we started with boroughDurations values, and we calculed the mean for each borough: 
+
+(Some(Queens),101.60664819944598)
+(Some(Bronx),97.77272727272727)
+(None,99.97435897435898)
+(Some(Brooklyn),97.76648351648352)
+(Some(Staten Island),59.5)
+(Some(Manhattan),95.751184366364)
+
+Next we defined the function hourOfTheDayDurations from sessions rdd in order to obtain an rdd with (hourOfTheDay, meanDuration): 
+
+(11,107.16695957820738)
+(10,107.27807486631016)
+(5,108.62745098039215)
+(6,106.36949152542373)
+(12,103.08695652173913)
+(9,104.71171171171171)
+(7,102.19391634980988)
+(8,100.50352112676056)
+(18,102.98329621380846)
+(19,99.84161849710982)
+(17,99.92420212765957)
+(20,98.16)
+(16,94.51333333333334)
+(21,97.20336391437309)
+(23,89.61538461538461)
+(4,84.71153846153847)
+(22,84.49023090586145)
+(0,84.13167259786476)
+(1,80.1774193548387)
+(13,86.08282828282829)
+(2,73.3157894736842)
+(15,74.07629427792915)
+(3,44.35820895522388)
+(14,67.62972292191436)
+
+
+(f)
+We defined the funtion distance between two point with Haversine formula and getSeconds in order to obtain duration seconds of a trip. Then we computed taxiDone using map with (hourOfDay, seconds/distance) and filtered all the values which are not NaN or infinity. Next we calculed the average for each hourOfDay: 
+
+(17,33.55292515112602)
+(19,37.76825125440233)
+(6,35.7815289664444)
+(16,19.013919364810643)
+(8,21.95694887306399)
+(9,22.225243921773963)
+(3,16.31512132255335)
+(14,14.587948930343801)
+(18,13.461572835507555)
+(0,13.73239338687483)
+(1,13.221093180329186)
+(15,14.126097606320217)
+(23,13.110881750549872)
+(10,12.882321780577396)
+(22,11.482680945981386)
+(11,12.123965202793482)
+(13,11.278968041311652)
+(12,11.48662181368883)
+(20,11.421197196943416)
+(7,11.183122020171275)
+(2,10.156063802982246)
+(21,9.745373811575151)
+(5,8.750784795963611)
+(4,11.043944634418716)
+
+
+
+
+
+
