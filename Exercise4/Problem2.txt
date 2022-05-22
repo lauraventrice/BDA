@@ -4,6 +4,8 @@ scalac -classpath $(echo $SPARK_HOME/jars/*.jar | tr ' ' ':') Problem2.scala
 jar -cvf ./Problem2.jar *.class
 rm *.class
 
+To use this code we also need the geojson file on moodle.
+
 # Explanation
 (a)
 We created a new scala class called Collision. It takes different parameters about the collisions. It also has some methods:
