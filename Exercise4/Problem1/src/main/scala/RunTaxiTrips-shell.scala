@@ -1,18 +1,19 @@
 import com.esri.core.geometry.{Geometry, GeometryEngine, Point, SpatialReference}
 import com.github.nscala_time.time.Imports.{DateTime, Duration}
 import GeoJsonProtocol._
-import breeze.numerics.{pow, sqrt}
 
 import java.text.SimpleDateFormat
 import org.apache.spark.{HashPartitioner, Partitioner}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.util.StatCounter
+import spire.math.Number.apply
 
 import scala.collection.mutable.ArrayBuffer
 import scala.reflect.ClassTag
 import spray.json._
 
+import java.lang.Math.{asin, cos, sin, sqrt, pow}
 import java.util.Locale
 
 val conf = new SparkConf()
@@ -354,7 +355,7 @@ val meanHourOfTheDay = hourOfTheDayDurations.map {
   case (sum, count) => sum.getStandardMinutes.toDouble/count.toDouble
 }
 
-meanHourOfTheDay.foreach(println)
+meanHourOfTheDay.sortBy(_._2, ascending = false).foreach(println)
 
 /*
 (f)
@@ -369,13 +370,20 @@ and sort these averages (one for each hour) in descending order
 
 //Normalizzare la durata rispetto alla distanza tra gli spot di partenza e arrivo
 
+
 def distance(point1: Point, point2: Point) = {
-  sqrt(pow(point1.getX - point2.getX, 2) + pow(point1.getY - point2.getY, 2))
+  2*6.371*asin(sqrt(pow(sin((point2.getX - point1.getX)/2), 2) + cos(point1.getX) * cos(point2.getX) * pow(sin((point2.getY - point1.getY)/2), 2)))
 }
 
+def getSeconds(trip: TaxiTrip) = {
+  val d = new Duration(
+    trip.pickupTime,
+    trip.dropoffTime)
+  d.getStandardSeconds
+}
 //media durata per ogni ora del giorno e rispetto tutti i trip
 val start =  taxiDone.map(elem => (elem._2.pickupTime.hourOfDay().getAsText,
-  new Duration(elem._2.pickupTime, elem._2.dropoffTime).getStandardSeconds.toDouble/distance(elem._2.pickupLoc, elem._2.dropoffLoc)))
+  getSeconds(elem._2).toDouble/distance(elem._2.pickupLoc, elem._2.dropoffLoc)))
 
 val result = start.map {
   case (hour, dur) => (hour, (dur, 1))
@@ -386,5 +394,6 @@ val result = start.map {
   case (sum, count) => sum/count.toDouble
 }.sortBy(_._2)
 
+result.sortBy(_._2, ascending = false).foreach(println)
 
 
