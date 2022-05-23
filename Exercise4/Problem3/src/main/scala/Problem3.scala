@@ -58,6 +58,6 @@ object Problem3 {
     val pathCSV = "dataset/All_Pokemon.csv"
 
     val pokemon = sc.textFile(pathCSV).filter(!_.startsWith("Number,")).map(parse).cache()
-    
+
   }
 }
