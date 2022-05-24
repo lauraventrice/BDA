@@ -2,11 +2,9 @@ Cose da fare:
 (a)
     Creare una classe oggetto Pokemon e quindi parsificare il csv in un rdd[Pokemon]
 (b)
-    Clusterizzare con Kmeans i pokemon per le loro statistiche (ad esempio valore di difesa, attacco e bla bla) in modo da vedere 
-    che i pokemon con statistiche simili si ritrovino nello stesso cluster
+    Clusterizzare con Kmeans i pokemon per le loro statistiche (ad esempio valore di difesa, attacco e bla bla) in modo da vedere che i pokemon con statistiche simili si ritrovino nello stesso cluster
 (c)
-    Conta il numero di pokemon per ogni tipo e stampa i 5 tipi più comuni. Per ognuno di questi trova il pokemon con la somma di statistiche
-    più alta.
+    Conta il numero di pokemon per ogni tipo e stampa i 5 tipi più comuni. Per ognuno di questi trova il pokemon con la somma di statistiche più alta.
 (d)
     Medie dei pesi di ogni pokemon gruppati per tipo e stampa i 3 tipi con media di peso più alte e rispettive medie
 (e)

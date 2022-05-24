@@ -1,3 +1,4 @@
+import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.mutable.ArrayBuffer
@@ -31,33 +32,53 @@ object Problem3 {
     val sc = new SparkContext(conf)
     sc.setLogLevel("ERROR")
 
-    def parse(line: String) = {
-      val baseInfo = line.split(",", 5)
-      val others = baseInfo(4)
-      var tmp = ("", "")
-      if(others.startsWith("\"[")){
-        tmp = others.splitAt(others.indexOf("]\",")+2)
-      }
-      else{
-        tmp = others.splitAt(others.indexOf(","))
-      }
-      val advanceInfo = tmp._2.replaceFirst(",", "").split(",")
-      val stats: Array[Int] = Array(advanceInfo(0).toInt, advanceInfo(1).toInt, advanceInfo(2).toInt, advanceInfo(3).toInt, advanceInfo(4).toInt, advanceInfo(5).toInt)
-      val isFinalEvo = advanceInfo(12)(0).equals('1')
-      val isLegendary = advanceInfo(13)(0).equals('1')
-      val isMega = advanceInfo(14)(0).equals('1')
+    //(a)
+    def parse(data: String) = {
+      val line = data.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)")
+      val id = line(0).toInt
+      val name = line(1)
+      val type1 = line(2)
+      val type2 = line(3)
+      val stats: Array[Int] = Array(line(5).toInt, line(6).toInt, line(7).toInt, line(8).toInt, line(9).toInt, line(10).toInt)
+      val generation = line(14)(0)
+      val isFinalEvo = line(17)(0).equals('1')
+      val isLegendary = line(19)(0).equals('1')
+      val isMega = line(20)(0).equals('1')
       val typeEffectiveness: ArrayBuffer[Double] = ArrayBuffer.empty
-      (0 to 15).foreach(index => {
-        typeEffectiveness.append(advanceInfo(16+index).toDouble)
+      (0 to 17).foreach(index => {
+        typeEffectiveness.append(line(23+index).toDouble)
       })
+      val height = line(41).toDouble
+      val weight = line(42).toDouble
 
-      new Pokemon(baseInfo(0).toInt, baseInfo(1), baseInfo(2), baseInfo(3), stats, advanceInfo(9)(0),
-        isFinalEvo, isLegendary, isMega, typeEffectiveness, advanceInfo(32).toDouble, advanceInfo(33).toDouble)
+      new Pokemon(id, name, type1, type2, stats, generation, isFinalEvo, isLegendary, isMega,
+        typeEffectiveness, height, weight)
     }
 
+    // TODO dove è meglio mettere l'array con i nomi delle stats e dei "typeEffectivness" (in pokemon o nel main?)
     val pathCSV = "dataset/All_Pokemon.csv"
+    val pokemonData = sc.textFile(pathCSV)
+    val header = pokemonData.first()
+    val pokemon = pokemonData.filter(!_.equals(header)).map(parse).cache()
 
-    val pokemon = sc.textFile(pathCSV).filter(!_.startsWith("Number,")).map(parse).cache()
+    //(b)
+    // TODO dobbiamo trovare altri parametri per fare il kmeans altrimenti le stats danno errore troppo elevato e
+    // risultati di merda
 
+    //(c)
+    def mostCommonType(rdd: RDD[Pokemon]) = {
+      rdd.map(_.pokemonType1).union(rdd.filter(!_.pokemonType2.equals("")).map(_.pokemonType2))
+        .groupBy(_.toString).map(x => (x._1, x._2.size))
+    }
+
+    val bestThreeTypes = mostCommonType(pokemon).sortBy(_._2, ascending = false).take(3)
+
+    def strongestPokemonForType(rdd: RDD[Pokemon], pokemonType: String) = {
+      rdd.map(pokemon => (pokemon.pokemonName, pokemon.pokemonType1, pokemon.pokemonType2, pokemon.pokemonStats))
+        .filter(pokemon => pokemon._2.equals(pokemonType) || pokemon._3.equals(pokemonType))
+        .map(pokemon => (pokemon._1, pokemon._4.sum))
+    }
+
+    strongestPokemonForType(pokemon, bestThreeTypes(0)._1).sortBy(_._2, ascending = false).take(1)
   }
 }
