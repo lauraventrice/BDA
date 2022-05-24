@@ -3,10 +3,11 @@ import org.apache.spark.{SparkConf, SparkContext}
 
 import java.time.{LocalDate, LocalTime}
 import java.time.format.DateTimeFormatter
-
 import com.esri.core.geometry.{ GeometryEngine, SpatialReference, Geometry, Point }
 import GeoJsonProtocol._
 import spray.json._
+
+import scala.util.Try
 
 class Collision(date: LocalDate, time: LocalTime, borough: String, latitude: String, longitude: String, onStreet: String,
                 crossStreet: String, offStreet: String, personInjured: Int, personKilled: Int,
@@ -61,43 +62,40 @@ object Problem2 {
     sc.setLogLevel("ERROR")
 
     //(a)
-    // Remove excess spaces from street names
-    def cleanString(string: String) = string.split(" ").mkString("", " ", "")
-
     def getDate(date: String) = LocalDate.parse(date, DateTimeFormatter.ofPattern("MM/dd/yyyy"))
 
     def getTime(time: String) = LocalTime.parse(time, DateTimeFormatter.ofPattern("HH:mm"))
 
-    def parse(line: String) = {
-      if(line.startsWith("DATE,")){
-        new Collision(LocalDate.now(), LocalTime.now(), "", "", "", "", "", "",
-          -1, -1, "", "", "", "")
-      }
-      else {
-        val fields = line.split(",", 7)
-        val date = getDate(fields(0))
-        if (fields(1).length == 4) fields(1) = "0" + fields(1)
-        val time = getTime(fields(1))
-        val features = fields(6)
-        var location = ""
-        if (!features.indexOf("\"").equals(-1)) {
-          location = features.substring(features.indexOf("\""), features.lastIndexOf("\"") + 1)
-        }
-        val others = features.replace(location, "").substring(1).split(",")
-        val onStreet = cleanString(others(0))
-        val crossStreet = cleanString(others(1))
-        val offStreet = cleanString(others(2))
-        var vehicle2 = ""
-        if (others.length > 18) vehicle2 = others(18)
-        new Collision(date, time, fields(2), fields(4), fields(5), onStreet, crossStreet, offStreet,
-          others(3).toInt, others(4).toInt, others(11), others(12), others(17), vehicle2)
-      }
+    def parse(data: String) = {
+      val line = data.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)")
+      val date = getDate(line(0).trim)
+      var tmpTime = line(1).trim
+      if (tmpTime.length == 4) tmpTime = "0" + tmpTime
+      val time = getTime(tmpTime)
+      val borough = line(2).trim
+      val latitude = line(4).trim
+      val longitude = line(5).trim
+      val onStreetName = line(7).trim
+      val crossStreetName = line(8).trim
+      val offStreetName = line(9).trim
+      val numberInjured = Try(line(10).trim.toInt).getOrElse(0)
+      val numberKilled = Try(line(11).trim.toInt).getOrElse(0)
+      val contributingFactorVehicle1 = line(18).trim
+      val contributingFactorVehicle2 = line(19).trim
+      val vehicle1 = line(24).trim
+      var vehicle2 = ""
+      if(line.length > 25) vehicle2 = line(25).trim
+      new Collision(date,time,borough,latitude,longitude,onStreetName,crossStreetName,offStreetName,numberInjured,numberKilled,contributingFactorVehicle1,contributingFactorVehicle2,
+      vehicle1, vehicle2)
     }
+
 
     val geojson = scala.io.Source.fromFile("./Data/nyc-borough-boundaries-polygon.geojson")
       .mkString.parseJson.convertTo[FeatureCollection]
 
-    val collisions = sc.textFile("NYPD_Motor_Vehicle_Collisions.csv").map(parse).map(_.addBorough(geojson))
+    val collisionData = sc.textFile("NYPD_Motor_Vehicle_Collisions.csv")
+    val header = collisionData.first()
+    val collisions = collisionData.filter(!_.equals(header)).map(parse).map(_.addBorough(geojson))
       .filter(!_.checkWrongCollision()).cache()
 
 
