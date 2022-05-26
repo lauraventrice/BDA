@@ -1,4 +1,9 @@
+import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.classification.DecisionTreeClassifier
+import org.apache.spark.ml.feature.{OneHotEncoder, StandardScaler, StringIndexer, VectorAssembler}
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.{Row, SparkSession}
+import org.apache.spark.sql.types.{ArrayType, DoubleType, IntegerType, StringType, StructField, StructType}
 import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.mutable.ArrayBuffer
@@ -31,6 +36,8 @@ object Problem3 {
     val conf = new SparkConf().setAppName(this.getClass.getSimpleName)
     val sc = new SparkContext(conf)
     sc.setLogLevel("ERROR")
+
+    val spark: SparkSession = SparkSession.builder.master("local").getOrCreate
 
     //(a)
     def parse(data: String) = {
@@ -80,5 +87,76 @@ object Problem3 {
     }
 
     strongestPokemonForType(pokemon, bestThreeTypes(0)._1).sortBy(_._2, ascending = false).take(1)
+
+    //(e)
+    // TODO magari usa cross validation
+    val columns = Array("Normal", "Fire", "Water", "Electric", "Grass", "Ice", "Fighting", "Poison", "Ground", "Flying",
+      "Psychic", "Bug", "Rock", "Ghost", "Dragon", "Dark", "Steel", "Fairy")
+
+    var schema = new StructType().add(StructField("Name", StringType, nullable = false))
+      .add(StructField("pokedexNumber", IntegerType, nullable = false))
+      .add(StructField("Type", StringType, nullable = false))
+    columns.foreach(x => schema = schema.add(StructField(x, StringType, nullable = false)))
+
+    // TODO rendilo più umano
+    val data = pokemon.map(pokemon => {
+      Row(pokemon.pokemonName, pokemon.pokedexNumber, pokemon.pokemonType1, pokemon.pokemonEffectiveness(0).toString, pokemon.pokemonEffectiveness(1).toString, pokemon.pokemonEffectiveness(2).toString,
+        pokemon.pokemonEffectiveness(3).toString, pokemon.pokemonEffectiveness(4).toString, pokemon.pokemonEffectiveness(5).toString, pokemon.pokemonEffectiveness(6).toString,
+        pokemon.pokemonEffectiveness(7).toString, pokemon.pokemonEffectiveness(8).toString, pokemon.pokemonEffectiveness(9).toString, pokemon.pokemonEffectiveness(10).toString,
+        pokemon.pokemonEffectiveness(11).toString, pokemon.pokemonEffectiveness(12).toString, pokemon.pokemonEffectiveness(13).toString, pokemon.pokemonEffectiveness(14).toString,
+        pokemon.pokemonEffectiveness(15).toString, pokemon.pokemonEffectiveness(16).toString, pokemon.pokemonEffectiveness(17).toString)
+    }).union(pokemon.filter(!_.pokemonType2.equals("")).map(pokemon => {
+      Row(pokemon.pokemonName, pokemon.pokedexNumber, pokemon.pokemonType2, pokemon.pokemonEffectiveness(0).toString, pokemon.pokemonEffectiveness(1).toString, pokemon.pokemonEffectiveness(2).toString,
+        pokemon.pokemonEffectiveness(3).toString, pokemon.pokemonEffectiveness(4).toString, pokemon.pokemonEffectiveness(5).toString, pokemon.pokemonEffectiveness(6).toString,
+        pokemon.pokemonEffectiveness(7).toString, pokemon.pokemonEffectiveness(8).toString, pokemon.pokemonEffectiveness(9).toString, pokemon.pokemonEffectiveness(10).toString,
+        pokemon.pokemonEffectiveness(11).toString, pokemon.pokemonEffectiveness(12).toString, pokemon.pokemonEffectiveness(13).toString, pokemon.pokemonEffectiveness(14).toString,
+        pokemon.pokemonEffectiveness(15).toString, pokemon.pokemonEffectiveness(16).toString, pokemon.pokemonEffectiveness(17).toString)
+    }))
+
+    val dataframe = spark.createDataFrame(data, schema)
+
+    dataframe.show(5)
+
+    var index_columns_OHE: Array[String] = Array()
+
+    columns.foreach(elem => {index_columns_OHE = index_columns_OHE.union(Array(elem + "OHE"))})
+
+    val labelIndexer = new StringIndexer()
+      .setInputCol("Type")
+      .setOutputCol("label")
+      .setHandleInvalid("skip")
+      .fit(dataframe)
+
+    val stringIndexer = columns.map { colName =>
+      new StringIndexer()
+        .setInputCol(colName)
+        .setOutputCol(colName + "_index")
+    }
+    val oneHotEncoder = columns.map { colName =>
+      new OneHotEncoder()
+        .setInputCol(colName + "_index")
+        .setOutputCol(colName + "OHE")
+    }
+    val vector = new VectorAssembler()
+      .setInputCols(index_columns_OHE)
+      .setOutputCol("features")
+
+    val scaler = new StandardScaler().setInputCol("features").setOutputCol("scaledFeatures")
+
+    val cl =  new DecisionTreeClassifier()
+      .setLabelCol("label")
+      .setFeaturesCol("scaledFeatures")
+
+    val stages = Array(labelIndexer) ++ stringIndexer ++ oneHotEncoder ++ Array(vector, scaler, cl)
+    val pipeline = new Pipeline().setStages(stages)
+
+    val model = pipeline.fit(dataframe)
+
+    model.transform(dataframe)
+      .select("Type", "name", "label", "prediction")
+      .collect()
+      .foreach { case Row(id: String, name:String, label:Double, prediction: Double) =>
+        println(s"($id, $name) --> label=$label, prediction=$prediction")
+      }
   }
 }
