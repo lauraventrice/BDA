@@ -1,6 +1,8 @@
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification.DecisionTreeClassifier
+import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
 import org.apache.spark.ml.feature.{OneHotEncoder, StandardScaler, StringIndexer, VectorAssembler}
+import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{Row, SparkSession}
 import org.apache.spark.sql.types.{ArrayType, DoubleType, IntegerType, StringType, StructField, StructType}
@@ -88,8 +90,8 @@ object Problem3 {
 
     strongestPokemonForType(pokemon, bestThreeTypes(0)._1).sortBy(_._2, ascending = false).take(1)
 
+    /*
     //(e)
-    // TODO magari usa cross validation
     val columns = Array("Normal", "Fire", "Water", "Electric", "Grass", "Ice", "Fighting", "Poison", "Ground", "Flying",
       "Psychic", "Bug", "Rock", "Ghost", "Dragon", "Dark", "Steel", "Fairy")
 
@@ -99,6 +101,7 @@ object Problem3 {
     columns.foreach(x => schema = schema.add(StructField(x, StringType, nullable = false)))
 
     // TODO rendilo più umano
+    // TODO forse come predizione è meglio mettere i tipi dei pokemon insieme perchè è importante ma non so come avere una label con due valori
     val data = pokemon.map(pokemon => {
       Row(pokemon.pokemonName, pokemon.pokedexNumber, pokemon.pokemonType1, pokemon.pokemonEffectiveness(0).toString, pokemon.pokemonEffectiveness(1).toString, pokemon.pokemonEffectiveness(2).toString,
         pokemon.pokemonEffectiveness(3).toString, pokemon.pokemonEffectiveness(4).toString, pokemon.pokemonEffectiveness(5).toString, pokemon.pokemonEffectiveness(6).toString,
@@ -150,13 +153,29 @@ object Problem3 {
     val stages = Array(labelIndexer) ++ stringIndexer ++ oneHotEncoder ++ Array(vector, scaler, cl)
     val pipeline = new Pipeline().setStages(stages)
 
-    val model = pipeline.fit(dataframe)
+    val paramGrid = new ParamGridBuilder()
+      .addGrid(cl.maxDepth, Array(5, 10, 15))
+      .addGrid(cl.impurity, Array("entropy", "gini"))
+      .addGrid(cl.maxBins, Array(20, 50, 100))
+      .build()
 
-    model.transform(dataframe)
+    //Cross-validation
+    val cv = new CrossValidator()
+      .setEstimator(pipeline)
+      .setEvaluator(new MulticlassClassificationEvaluator())
+      .setEstimatorParamMaps(paramGrid)
+      .setNumFolds(5)  // Use 5-fold cross-validation
+      .setParallelism(2)
+
+    val cvModel = cv.fit(dataframe)
+
+    cvModel.transform(dataframe)
       .select("Type", "name", "label", "prediction")
       .collect()
       .foreach { case Row(id: String, name:String, label:Double, prediction: Double) =>
         println(s"($id, $name) --> label=$label, prediction=$prediction")
       }
+      
+     */
   }
 }
