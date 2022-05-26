@@ -90,7 +90,6 @@ object Problem3 {
 
     strongestPokemonForType(pokemon, bestThreeTypes(0)._1).sortBy(_._2, ascending = false).take(1)
 
-    /*
     //(e)
     val columns = Array("Normal", "Fire", "Water", "Electric", "Grass", "Ice", "Fighting", "Poison", "Ground", "Flying",
       "Psychic", "Bug", "Rock", "Ghost", "Dragon", "Dark", "Steel", "Fairy")
@@ -101,20 +100,13 @@ object Problem3 {
     columns.foreach(x => schema = schema.add(StructField(x, StringType, nullable = false)))
 
     // TODO rendilo più umano
-    // TODO forse come predizione è meglio mettere i tipi dei pokemon insieme perchè è importante ma non so come avere una label con due valori
     val data = pokemon.map(pokemon => {
-      Row(pokemon.pokemonName, pokemon.pokedexNumber, pokemon.pokemonType1, pokemon.pokemonEffectiveness(0).toString, pokemon.pokemonEffectiveness(1).toString, pokemon.pokemonEffectiveness(2).toString,
+      Row(pokemon.pokemonName, pokemon.pokedexNumber, (pokemon.pokemonType1, pokemon.pokemonType2).toString(), pokemon.pokemonEffectiveness(0).toString, pokemon.pokemonEffectiveness(1).toString, pokemon.pokemonEffectiveness(2).toString,
         pokemon.pokemonEffectiveness(3).toString, pokemon.pokemonEffectiveness(4).toString, pokemon.pokemonEffectiveness(5).toString, pokemon.pokemonEffectiveness(6).toString,
         pokemon.pokemonEffectiveness(7).toString, pokemon.pokemonEffectiveness(8).toString, pokemon.pokemonEffectiveness(9).toString, pokemon.pokemonEffectiveness(10).toString,
         pokemon.pokemonEffectiveness(11).toString, pokemon.pokemonEffectiveness(12).toString, pokemon.pokemonEffectiveness(13).toString, pokemon.pokemonEffectiveness(14).toString,
         pokemon.pokemonEffectiveness(15).toString, pokemon.pokemonEffectiveness(16).toString, pokemon.pokemonEffectiveness(17).toString)
-    }).union(pokemon.filter(!_.pokemonType2.equals("")).map(pokemon => {
-      Row(pokemon.pokemonName, pokemon.pokedexNumber, pokemon.pokemonType2, pokemon.pokemonEffectiveness(0).toString, pokemon.pokemonEffectiveness(1).toString, pokemon.pokemonEffectiveness(2).toString,
-        pokemon.pokemonEffectiveness(3).toString, pokemon.pokemonEffectiveness(4).toString, pokemon.pokemonEffectiveness(5).toString, pokemon.pokemonEffectiveness(6).toString,
-        pokemon.pokemonEffectiveness(7).toString, pokemon.pokemonEffectiveness(8).toString, pokemon.pokemonEffectiveness(9).toString, pokemon.pokemonEffectiveness(10).toString,
-        pokemon.pokemonEffectiveness(11).toString, pokemon.pokemonEffectiveness(12).toString, pokemon.pokemonEffectiveness(13).toString, pokemon.pokemonEffectiveness(14).toString,
-        pokemon.pokemonEffectiveness(15).toString, pokemon.pokemonEffectiveness(16).toString, pokemon.pokemonEffectiveness(17).toString)
-    }))
+    })
 
     val dataframe = spark.createDataFrame(data, schema)
 
@@ -154,7 +146,7 @@ object Problem3 {
     val pipeline = new Pipeline().setStages(stages)
 
     val paramGrid = new ParamGridBuilder()
-      .addGrid(cl.maxDepth, Array(5, 10, 15))
+      .addGrid(cl.maxDepth, Array(5, 10, 15 ))
       .addGrid(cl.impurity, Array("entropy", "gini"))
       .addGrid(cl.maxBins, Array(20, 50, 100))
       .build()
@@ -175,7 +167,5 @@ object Problem3 {
       .foreach { case Row(id: String, name:String, label:Double, prediction: Double) =>
         println(s"($id, $name) --> label=$label, prediction=$prediction")
       }
-      
-     */
   }
 }
