@@ -3,11 +3,19 @@ import org.apache.spark.ml.classification.DecisionTreeClassifier
 import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
 import org.apache.spark.ml.feature.{OneHotEncoder, StandardScaler, StringIndexer, VectorAssembler}
 import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
+import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.mllib.linalg._
+import org.apache.spark.rdd.RDD
+import java.io.{BufferedWriter, File, FileWriter}
+import scala.math._
+import scala.collection.mutable.ArrayBuffer
+import org.apache.spark.mllib.clustering.{KMeans, KMeansModel}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{Row, SparkSession}
 import org.apache.spark.sql.types.{ArrayType, DoubleType, IntegerType, StringType, StructField, StructType}
 import org.apache.spark.{SparkConf, SparkContext}
 
+import java.io.{BufferedWriter, File, FileWriter}
 import scala.collection.mutable.ArrayBuffer
 
 class Pokemon(id: Int, name: String, type1: String, type2: String, stats: Array[Int], generation: Char,
@@ -70,9 +78,85 @@ object Problem3 {
     val header = pokemonData.first()
     val pokemon = pokemonData.filter(!_.equals(header)).map(parse).cache()
 
+    /*
     //(b)
-    // TODO dobbiamo trovare altri parametri per fare il kmeans altrimenti le stats danno errore troppo elevato e
-    // risultati di merda
+    // TODO scegli se tenere tutti questi metodi oppure fare qualcosa di più piccolo
+    // TODO rendi più bello il codice
+    def clusterSquareDistance(data: RDD[Vector], meansModel: KMeansModel): Double = {
+      val tmp = data.map(vector => {
+        val dist = distToCentroid(vector, meansModel)
+        dist * dist
+      })
+      tmp.sum()
+    }
+
+    def distance(a: Vector, b: Vector): Double = math.sqrt(a.toArray.zip(b.toArray).map(p => p._1 - p._2).map(d => d * d).sum)
+
+    // Distance between an element and its centroid
+    def distToCentroid(vector: Vector, meansModel: KMeansModel): Double = {
+      val cluster = meansModel.predict(vector)
+      val centroid = meansModel.clusterCenters(cluster)
+      distance(centroid, vector)
+    }
+
+    def normalize(value: Double, max: Double, min: Double): Double = (value-min) / (max-min)
+
+    def getBest(array: ArrayBuffer[(Int, Double)]): (Int, Double) = {
+      val threshold = 2
+      var elem = array(0)
+      var flag = true
+      var i = 1
+      while (flag) {
+        if (array(i-1)._2 > array(i)._2 * threshold) elem = array(i)
+        else flag = false
+        if(i.equals(array.length-1)) flag = false
+        i = i+1
+      }
+      elem
+    }
+
+    val maxValues = pokemon.map(pokemon => (pokemon.pokemonWeight, pokemon.pokemonHeight))
+    val maxWeight = maxValues.sortBy(_._1, ascending = false).take(1)(0)._1
+    val minWeight = maxValues.sortBy(_._1).take(1)(0)._1
+    val maxHeight = maxValues.sortBy(_._2, ascending = false).take(1)(0)._2
+    val minHeight = maxValues.sortBy(_._2).take(1)(0)._2
+
+    val kMeansData = pokemon.map { pokemon =>
+      val weight: Double = normalize(pokemon.pokemonWeight, maxWeight, minWeight)
+      val height: Double = normalize(pokemon.pokemonHeight, maxHeight, minHeight)
+      val vector = Vectors.dense(Array(weight, height))
+      vector
+    }.cache()
+
+    val distancesArray: ArrayBuffer[(Int, Double)] = ArrayBuffer()
+    val clusterSquareDistanceArray: ArrayBuffer[(Int, Double)] = ArrayBuffer()
+    val models: ArrayBuffer[KMeansModel] = ArrayBuffer()
+
+    // Choose the best k for the clustering
+    (10 to 50 by 10).foreach(k => {
+      val KMeans = new KMeans().setK(k).setEpsilon(1.0e-4)
+      val meansModel = KMeans.run(kMeansData)
+      distancesArray += ((k, kMeansData.map(d => distToCentroid(d, meansModel)).mean()))
+      clusterSquareDistanceArray += ((k, clusterSquareDistance(kMeansData, meansModel)))
+      models += meansModel
+    })
+
+    val file = new File("./numberK.txt")
+    val bw = new BufferedWriter(new FileWriter(file))
+    clusterSquareDistanceArray.foreach(x => {
+      bw.write(x._1.toString + "," + x._2.toString + "\n")
+    })
+    bw.close()
+
+    val bestSquareDistance = getBest(clusterSquareDistanceArray)
+    println("k=", bestSquareDistance._1)
+    val bestDistance = distancesArray.filter(elem => elem._1.equals(bestSquareDistance._1)).take(1)(0)
+    val bestModel = models(bestDistance._1/10 - 1)
+
+    val partialExample = kMeansData.map(vector => bestModel.predict(vector) + "," + vector.toArray.mkString(","))
+    partialExample.repartition(1).saveAsTextFile("./totalExample")
+    
+     */
 
     //(c)
     def mostCommonType(rdd: RDD[Pokemon]) = {
@@ -90,6 +174,7 @@ object Problem3 {
 
     strongestPokemonForType(pokemon, bestThreeTypes(0)._1).sortBy(_._2, ascending = false).take(1)
 
+    /* TODO commentato per fare i test, questo funziona
     //(e)
     val columns = Array("Normal", "Fire", "Water", "Electric", "Grass", "Ice", "Fighting", "Poison", "Ground", "Flying",
       "Psychic", "Bug", "Rock", "Ghost", "Dragon", "Dark", "Steel", "Fairy")
@@ -161,11 +246,20 @@ object Problem3 {
 
     val cvModel = cv.fit(dataframe)
 
+    // We want to print only the wrong prediction
+    // TODO sarebbe bello capire qual è il nuovo tipo che predice per poterlo commentare
     cvModel.transform(dataframe)
       .select("Type", "name", "label", "prediction")
       .collect()
       .foreach { case Row(id: String, name:String, label:Double, prediction: Double) =>
-        println(s"($id, $name) --> label=$label, prediction=$prediction")
+        if (prediction != label) println(s"($id, $name) --> label=$label, prediction=$prediction")
       }
+
+    val predictionAndLabels = cvModel.transform(dataframe).select("label", "prediction").rdd.map(row => (row.getDouble(0), row.getDouble(1)))
+
+    val accuracy = predictionAndLabels.filter(pl => pl._1.equals(pl._2)).count().toDouble / dataframe.count().toDouble
+    println(accuracy)
+
+     */
   }
 }
