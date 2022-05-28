@@ -153,8 +153,8 @@ object Problem3 {
     val bestDistance = distancesArray.filter(elem => elem._1.equals(bestSquareDistance._1)).take(1)(0)
     val bestModel = models(bestDistance._1/10 - 1)
 
-    val partialExample = kMeansData.map(vector => bestModel.predict(vector) + "," + vector.toArray.mkString(","))
-    partialExample.repartition(1).saveAsTextFile("./totalExample")
+    val totalExample = kMeansData.map(vector => bestModel.predict(vector) + "," + vector.toArray.mkString(","))
+    totalExample.repartition(1).saveAsTextFile("./totalExample")
     
      */
 
