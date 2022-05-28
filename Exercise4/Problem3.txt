@@ -1,6 +1,4 @@
 Cose da fare:
-(a)
-    Creare una classe oggetto Pokemon e quindi parsificare il csv in un rdd[Pokemon]
 (b)
     Clusterizzare con Kmeans i pokemon per le loro statistiche (ad esempio valore di difesa, attacco e bla bla) in modo da vedere che i pokemon con statistiche simili si ritrovino nello stesso cluster
 (c)
@@ -13,3 +11,12 @@ Cose da fare:
     Predire la vittoria di un pokemon rispetto ad un altro usando il dataset dei combattimenti
 (g)
     Creare un grafo e fare le varie analisi da grafo usando il dataset dei combattimenti per vedere chi ha combattuto con chi e cose così
+
+# Explanation
+The main dataset of this project is based on the Pokemon world, the Nintendo videogame. 
+
+(a) 
+
+We defined a new Scala class Pokemon with appropriate fields to store some important attributes. 
+
+(b)

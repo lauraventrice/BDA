@@ -155,7 +155,7 @@ object Problem3 {
 
     val totalExample = kMeansData.map(vector => bestModel.predict(vector) + "," + vector.toArray.mkString(","))
     totalExample.repartition(1).saveAsTextFile("./totalExample")
-    
+
      */
 
     //(c)
