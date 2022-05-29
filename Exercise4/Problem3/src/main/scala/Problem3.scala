@@ -179,36 +179,33 @@ object Problem3 {
     println("Strongest pokemon: " + strongestPokemon(pokemon))
 
     //(d)
-    // TODO controlla perchè mi sembra che stampi sempre un sampo vuoto in più
     def legendaryByGen(rdd: RDD[Pokemon]) = {
       rdd.filter(_.isLegendary).map(pokemon => (pokemon.pokemonGeneration, pokemon.pokemonName)).groupBy(_._1)
         .map(pokemon => (pokemon._1, pokemon._2.map(x => x._2)))
     }
 
-    println("Legendary:")
-    println(legendaryByGen(pokemon).foreach(println))
+    val legendary = legendaryByGen(pokemon)
 
     def finalEvoByGen(rdd: RDD[Pokemon]) = {
-      rdd.filter(x => x.isFinalEvo && !x.isLegendary).map(pokemon => (pokemon.pokemonGeneration, pokemon.pokemonName)).groupBy(_._1)
+      rdd.filter(x => x.isFinalEvo && !x.isLegendary && !x.isMega).map(pokemon => (pokemon.pokemonGeneration, pokemon.pokemonName)).groupBy(_._1)
         .map(pokemon => (pokemon._1, pokemon._2.map(x => x._2)))
     }
 
-    println("Final Evo:")
-    println(finalEvoByGen(pokemon).foreach(println))
+    val finalEvo = finalEvoByGen(pokemon)
 
-    /* TODO commentato per fare i test, questo funziona
+    // TODO commentato per fare i test, questo funziona
+    /*
     //(e)
     val columns = Array("Normal", "Fire", "Water", "Electric", "Grass", "Ice", "Fighting", "Poison", "Ground", "Flying",
       "Psychic", "Bug", "Rock", "Ghost", "Dragon", "Dark", "Steel", "Fairy")
 
     var schema = new StructType().add(StructField("Name", StringType, nullable = false))
-      .add(StructField("pokedexNumber", IntegerType, nullable = false))
       .add(StructField("Type", StringType, nullable = false))
     columns.foreach(x => schema = schema.add(StructField(x, StringType, nullable = false)))
 
     // TODO rendilo più umano
     val data = pokemon.map(pokemon => {
-      Row(pokemon.pokemonName, pokemon.pokedexNumber, (pokemon.pokemonType1, pokemon.pokemonType2).toString(), pokemon.pokemonEffectiveness(0).toString, pokemon.pokemonEffectiveness(1).toString, pokemon.pokemonEffectiveness(2).toString,
+      Row(pokemon.pokemonName, (pokemon.pokemonType1, pokemon.pokemonType2).toString(), pokemon.pokemonEffectiveness(0).toString, pokemon.pokemonEffectiveness(1).toString, pokemon.pokemonEffectiveness(2).toString,
         pokemon.pokemonEffectiveness(3).toString, pokemon.pokemonEffectiveness(4).toString, pokemon.pokemonEffectiveness(5).toString, pokemon.pokemonEffectiveness(6).toString,
         pokemon.pokemonEffectiveness(7).toString, pokemon.pokemonEffectiveness(8).toString, pokemon.pokemonEffectiveness(9).toString, pokemon.pokemonEffectiveness(10).toString,
         pokemon.pokemonEffectiveness(11).toString, pokemon.pokemonEffectiveness(12).toString, pokemon.pokemonEffectiveness(13).toString, pokemon.pokemonEffectiveness(14).toString,
@@ -216,8 +213,6 @@ object Problem3 {
     })
 
     val dataframe = spark.createDataFrame(data, schema)
-
-    dataframe.show(5)
 
     var index_columns_OHE: Array[String] = Array()
 
@@ -253,7 +248,7 @@ object Problem3 {
     val pipeline = new Pipeline().setStages(stages)
 
     val paramGrid = new ParamGridBuilder()
-      .addGrid(cl.maxDepth, Array(5, 10, 15 ))
+      .addGrid(cl.maxDepth, Array(5, 10, 15))
       .addGrid(cl.impurity, Array("entropy", "gini"))
       .addGrid(cl.maxBins, Array(20, 50, 100))
       .build()
@@ -268,20 +263,26 @@ object Problem3 {
 
     val cvModel = cv.fit(dataframe)
 
+    cvModel.save("a")
+
+    val pokemonType = cvModel.transform(dataframe).select("Type", "label").distinct().collect()
+      .map{case Row(pokemonType: String, label:Double) => (pokemonType, label)}
+
     // We want to print only the wrong prediction
-    // TODO sarebbe bello capire qual è il nuovo tipo che predice per poterlo commentare
     cvModel.transform(dataframe)
-      .select("Type", "name", "label", "prediction")
+      .select("Type", "name", "prediction")
       .collect()
-      .foreach { case Row(id: String, name:String, label:Double, prediction: Double) =>
-        if (prediction != label) println(s"($id, $name) --> label=$label, prediction=$prediction")
+      .foreach { case Row(realType: String, name:String, prediction: Double) =>
+        val predictedType = pokemonType.filter(_._2.equals(prediction))(0)._1
+        if (!predictedType.equals(realType))
+          println(s"($name) --> realType=$realType, prediction=$predictedType")
       }
 
     val predictionAndLabels = cvModel.transform(dataframe).select("label", "prediction").rdd.map(row => (row.getDouble(0), row.getDouble(1)))
 
     val accuracy = predictionAndLabels.filter(pl => pl._1.equals(pl._2)).count().toDouble / dataframe.count().toDouble
     println(accuracy)
-
+    
      */
   }
 }
