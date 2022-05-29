@@ -80,8 +80,12 @@ object Problem3 {
 
     /*
     //(b)
+    // TODO commentato per fare gli altri test (FUNZIONA)
     // TODO scegli se tenere tutti questi metodi oppure fare qualcosa di più piccolo
     // TODO rendi più bello il codice
+    // TODO aggiungi MinMax Normalization piuttosto di quella barbonata che ho fatto (in realtà forse il mio va bene)
+    def normalize(value: Double, max: Double, min: Double): Double = (value-min) / (max-min)
+
     def clusterSquareDistance(data: RDD[Vector], meansModel: KMeansModel): Double = {
       val tmp = data.map(vector => {
         val dist = distToCentroid(vector, meansModel)
@@ -98,8 +102,6 @@ object Problem3 {
       val centroid = meansModel.clusterCenters(cluster)
       distance(centroid, vector)
     }
-
-    def normalize(value: Double, max: Double, min: Double): Double = (value-min) / (max-min)
 
     def getBest(array: ArrayBuffer[(Int, Double)]): (Int, Double) = {
       val threshold = 2
@@ -124,8 +126,7 @@ object Problem3 {
     val kMeansData = pokemon.map { pokemon =>
       val weight: Double = normalize(pokemon.pokemonWeight, maxWeight, minWeight)
       val height: Double = normalize(pokemon.pokemonHeight, maxHeight, minHeight)
-      val vector = Vectors.dense(Array(weight, height))
-      vector
+      Vectors.dense(Array(weight, height))
     }.cache()
 
     val distancesArray: ArrayBuffer[(Int, Double)] = ArrayBuffer()
@@ -149,14 +150,10 @@ object Problem3 {
     bw.close()
 
     val bestSquareDistance = getBest(clusterSquareDistanceArray)
-    println("k=", bestSquareDistance._1)
-    val bestDistance = distancesArray.filter(elem => elem._1.equals(bestSquareDistance._1)).take(1)(0)
-    val bestModel = models(bestDistance._1/10 - 1)
+    val bestModel = models(bestSquareDistance._1/10 - 1)
 
     val totalExample = kMeansData.map(vector => bestModel.predict(vector) + "," + vector.toArray.mkString(","))
-    totalExample.repartition(1).saveAsTextFile("./totalExample")
-
-     */
+    totalExample.repartition(1).saveAsTextFile("./totalExample")*/
 
     //(c)
     def mostCommonType(rdd: RDD[Pokemon]) = {
@@ -164,7 +161,7 @@ object Problem3 {
         .groupBy(_.toString).map(x => (x._1, x._2.size))
     }
 
-    val bestThreeTypes = mostCommonType(pokemon).sortBy(_._2, ascending = false).take(3)
+    val bestType = mostCommonType(pokemon).sortBy(_._2, ascending = false).take(1)(0)
 
     def strongestPokemonForType(rdd: RDD[Pokemon], pokemonType: String) = {
       rdd.map(pokemon => (pokemon.pokemonName, pokemon.pokemonType1, pokemon.pokemonType2, pokemon.pokemonStats))
@@ -172,7 +169,32 @@ object Problem3 {
         .map(pokemon => (pokemon._1, pokemon._4.sum))
     }
 
-    strongestPokemonForType(pokemon, bestThreeTypes(0)._1).sortBy(_._2, ascending = false).take(1)
+    println("Strongest pokemon of most common type (" + bestType._1 + ")" + ": " +
+      strongestPokemonForType(pokemon, bestType._1).sortBy(_._2, ascending = false).take(1)(0))
+
+    def strongestPokemon(rdd: RDD[Pokemon]) = {
+      rdd.map(pokemon => (pokemon.pokemonName, pokemon.pokemonStats.sum)).sortBy(_._2, ascending = false).take(1)(0)
+    }
+
+    println("Strongest pokemon: " + strongestPokemon(pokemon))
+
+    //(d)
+    // TODO controlla perchè mi sembra che stampi sempre un sampo vuoto in più
+    def legendaryByGen(rdd: RDD[Pokemon]) = {
+      rdd.filter(_.isLegendary).map(pokemon => (pokemon.pokemonGeneration, pokemon.pokemonName)).groupBy(_._1)
+        .map(pokemon => (pokemon._1, pokemon._2.map(x => x._2)))
+    }
+
+    println("Legendary:")
+    println(legendaryByGen(pokemon).foreach(println))
+
+    def finalEvoByGen(rdd: RDD[Pokemon]) = {
+      rdd.filter(x => x.isFinalEvo && !x.isLegendary).map(pokemon => (pokemon.pokemonGeneration, pokemon.pokemonName)).groupBy(_._1)
+        .map(pokemon => (pokemon._1, pokemon._2.map(x => x._2)))
+    }
+
+    println("Final Evo:")
+    println(finalEvoByGen(pokemon).foreach(println))
 
     /* TODO commentato per fare i test, questo funziona
     //(e)

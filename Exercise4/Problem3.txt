@@ -1,10 +1,4 @@
 Cose da fare:
-(b)
-    Clusterizzare con Kmeans i pokemon per le loro statistiche (ad esempio valore di difesa, attacco e bla bla) in modo da vedere che i pokemon con statistiche simili si ritrovino nello stesso cluster
-(c)
-    Conta il numero di pokemon per ogni tipo e stampa i 5 tipi più comuni. Per ognuno di questi trova il pokemon con la somma di statistiche più alta.
-(d)
-    Medie dei pesi di ogni pokemon gruppati per tipo e stampa i 3 tipi con media di peso più alte e rispettive medie
 (e)
     Provare ad effettuare predizione di un tipo di pokemon in base alle sue debolezze e forze
 (f)
@@ -13,10 +7,20 @@ Cose da fare:
     Creare un grafo e fare le varie analisi da grafo usando il dataset dei combattimenti per vedere chi ha combattuto con chi e cose così
 
 # Explanation
-The main dataset of this project is based on the Pokemon world, the Nintendo videogame. 
+The main dataset of this project is based on the Pokemon world, the Nintendo videogame. Link for the dataset: https://www.kaggle.com/datasets/maca11/all-pokemon-dataset
 
 (a) 
-
-We defined a new Scala class Pokemon with appropriate fields to store some important attributes. 
+We defined a new Scala class Pokemon with appropriate fields to store some important attributes as the Pokemon's name and its types.
 
 (b)
+We clustered the Pokemon for them height and weight using kMeans algorithm. We normalized the scales of the values (because kMeans works better with parameters with the same scale).
+
+The next point was to choose the best number of cluster "k" for clustering. We used the squared distance in order to obtain this value. We computed this metric on a number of cluster between 10 and 50.
+The main idea is that if we plot the squared distance for each cluster we can obtain an hyperbole in which the location of a bend (knee) is generally considered as an indicator of the appropriate number of clusters (Elbow method). It is also possible to plot this graph on the python source code attached. To obtain the same result in an unsupervised learning we decided a threshold. If from a step to another there is less than the amount of threshold of difference, it means that we need to stop here, because we found the correct value. 
+Eventually, we saved the whole set of elements with their cluster in order to plot them with the notebook.
+
+(c)
+We computed the most common Pokemon type and we printed the most powerful Pokemon (by its statistics) for this type. Then, we found the strongest Pokemon to compare him with the previous result. We discovered that they are not the same Pokemon, because the strongest one is of Psychic type, but the most common type is Water.
+
+(d)
+We grouped the legendaries Pokemon for each generation and we printed them. Then we did the same grouping, but for finalEvo Pokemon which are not also legendaries.
