@@ -16,6 +16,7 @@ import org.apache.spark.sql.types.{ArrayType, DoubleType, IntegerType, StringTyp
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.ml.classification.{DecisionTreeClassifier, RandomForestClassifier}
 
+import org.apache.spark.graphx._
 import java.io.{BufferedWriter, File, FileWriter}
 import scala.collection.mutable.ArrayBuffer
 
@@ -282,6 +283,44 @@ object Problem3 {
     val accuracy = predictionAndLabels.filter(pl => pl._1.equals(pl._2)).count().toDouble / testData.count().toDouble
     println(accuracy)
      */
-    
+
+
+    //(f)
+
+    def parseCombat(data: String) = {
+      val line = data.split(",")
+      val firstPokemon = line(0).toInt
+      val secondPokemon = line(1).toInt
+      (firstPokemon, secondPokemon)
+    }
+
+    val pathCombatsCSV = "dataset/Combats.csv"
+    var combatsData = sc.textFile(pathCombatsCSV)
+    val headerCombats = combatsData.first()
+    combatsData = combatsData.filter(!_.equals(headerCombats)).cache()
+    val combats = combatsData.map(parseCombat).cache()
+
+    val cntCombats = combats.map(c => (c, 1)).reduceByKey(_ + _)
+    val edges = cntCombats.map(c => {
+      val count =  c._2
+      val firstPokemon = c._1._1
+      val secondPokemon = c._1._2
+      Edge(firstPokemon, secondPokemon, count)
+    })
+
+    def getName(id: Int) = {
+      val elem = pokemon.filter(p => p.pokedexNumber.equals(id))
+      val s = elem.take(1).apply(0)
+      s.pokemonName
+    }
+
+    val verticesPokemon = combatsData.flatMap(line => line.split(",")).map(p => (p.toLong, getName(p.toInt)))
+
+    val edgesCount = edges.count()
+    val verticesCount = verticesPokemon.count()
+    print(s"VERTICES: $verticesCount")
+    print(s"EDGES: $edgesCount")
+
+    val pokemonGraph = Graph(verticesPokemon, edges)
   }
 }
