@@ -75,7 +75,7 @@ object Problem3 {
     }
 
     // TODO dove è meglio mettere l'array con i nomi delle stats e dei "typeEffectivness" (in pokemon o nel main?)
-    val pathCSV = "dataset/All_Pokemon.csv"
+    val pathCSV = "All_Pokemon.csv"
     val pokemonData = sc.textFile(pathCSV)
     val header = pokemonData.first()
     val pokemon = pokemonData.filter(!_.equals(header)).map(parse).cache()
@@ -294,7 +294,7 @@ object Problem3 {
       (firstPokemon, secondPokemon)
     }
 
-    val pathCombatsCSV = "dataset/Combats.csv"
+    val pathCombatsCSV = "combats.csv"
     var combatsData = sc.textFile(pathCombatsCSV)
     val headerCombats = combatsData.first()
     combatsData = combatsData.filter(!_.equals(headerCombats)).cache()
@@ -313,7 +313,7 @@ object Problem3 {
       mapPokemon(id).pokemonName
     }
 
-    val verticesPokemon = combatsData.flatMap(line => line.split(",")).map(p => (p.toLong, getName(p.toInt)))
+    val verticesPokemon = combatsData.flatMap(line => line.split(",")).map(p => (p.toLong, getName(p.toInt))).distinct()
 
     val edgesCount = edges.count()
     val verticesCount = verticesPokemon.count()
@@ -321,5 +321,7 @@ object Problem3 {
     print(s"EDGES: $edgesCount")
 
     val pokemonGraph = Graph(verticesPokemon, edges)
+    
+    
   }
 }
