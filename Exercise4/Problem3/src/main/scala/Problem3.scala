@@ -3,9 +3,9 @@ import org.apache.spark.ml.classification.DecisionTreeClassifier
 import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
 import org.apache.spark.ml.feature.{OneHotEncoder, StandardScaler, StringIndexer, VectorAssembler}
 import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
-import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.mllib.linalg._
+import org.apache.spark.{SparkConf, SparkContext, sql}
 import org.apache.spark.rdd.RDD
+
 import java.io.{BufferedWriter, File, FileWriter}
 import scala.math._
 import scala.collection.mutable.ArrayBuffer
@@ -14,6 +14,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{Row, SparkSession}
 import org.apache.spark.sql.types.{ArrayType, DoubleType, IntegerType, StringType, StructField, StructType}
 import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.ml.classification.{DecisionTreeClassifier, RandomForestClassifier}
 
 import java.io.{BufferedWriter, File, FileWriter}
 import scala.collection.mutable.ArrayBuffer
@@ -82,8 +83,6 @@ object Problem3 {
     //(b)
     // TODO commentato per fare gli altri test (FUNZIONA)
     // TODO scegli se tenere tutti questi metodi oppure fare qualcosa di più piccolo
-    // TODO rendi più bello il codice
-    // TODO aggiungi MinMax Normalization piuttosto di quella barbonata che ho fatto (in realtà forse il mio va bene)
     def normalize(value: Double, max: Double, min: Double): Double = (value-min) / (max-min)
 
     def clusterSquareDistance(data: RDD[Vector], meansModel: KMeansModel): Double = {
@@ -214,6 +213,8 @@ object Problem3 {
 
     val dataframe = spark.createDataFrame(data, schema)
 
+    val Array(trainData, testData) = dataframe.randomSplit(Array(0.9, 0.1))
+
     var index_columns_OHE: Array[String] = Array()
 
     columns.foreach(elem => {index_columns_OHE = index_columns_OHE.union(Array(elem + "OHE"))})
@@ -222,7 +223,7 @@ object Problem3 {
       .setInputCol("Type")
       .setOutputCol("label")
       .setHandleInvalid("skip")
-      .fit(dataframe)
+      .fit(trainData)
 
     val stringIndexer = columns.map { colName =>
       new StringIndexer()
@@ -261,15 +262,13 @@ object Problem3 {
       .setNumFolds(5)  // Use 5-fold cross-validation
       .setParallelism(2)
 
-    val cvModel = cv.fit(dataframe)
+    val cvModel = cv.fit(trainData)
 
-    cvModel.save("a")
-
-    val pokemonType = cvModel.transform(dataframe).select("Type", "label").distinct().collect()
+    val pokemonType = cvModel.transform(trainData).select("Type", "label").distinct().collect()
       .map{case Row(pokemonType: String, label:Double) => (pokemonType, label)}
 
     // We want to print only the wrong prediction
-    cvModel.transform(dataframe)
+    cvModel.transform(testData)
       .select("Type", "name", "prediction")
       .collect()
       .foreach { case Row(realType: String, name:String, prediction: Double) =>
@@ -278,11 +277,11 @@ object Problem3 {
           println(s"($name) --> realType=$realType, prediction=$predictedType")
       }
 
-    val predictionAndLabels = cvModel.transform(dataframe).select("label", "prediction").rdd.map(row => (row.getDouble(0), row.getDouble(1)))
+    val predictionAndLabels = cvModel.transform(testData).select("label", "prediction").rdd.map(row => (row.getDouble(0), row.getDouble(1)))
 
-    val accuracy = predictionAndLabels.filter(pl => pl._1.equals(pl._2)).count().toDouble / dataframe.count().toDouble
+    val accuracy = predictionAndLabels.filter(pl => pl._1.equals(pl._2)).count().toDouble / testData.count().toDouble
     println(accuracy)
-    
      */
+    
   }
 }

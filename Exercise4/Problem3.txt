@@ -1,7 +1,5 @@
 Cose da fare:
 (f)
-    Predire la vittoria di un pokemon rispetto ad un altro usando il dataset dei combattimenti
-(g)
     Creare un grafo e fare le varie analisi da grafo usando il dataset dei combattimenti per vedere chi ha combattuto con chi e cose così
 
 # Explanation
@@ -26,9 +24,9 @@ We grouped the legendaries Pokemon for each generation and we printed them. Then
 (e)
 We used a cross validation model to predict the Pokemon type from his effectiveness. The parameters for the cv are: maxDepth = (5, 10, 15), impurity = ("entropy", "gini") and maxBins = (20, 50, 100). We also used the StringIndexer to convert the strings in numbers. Eventually, we studied the results to comment them.
 
-With the best parameters the results are amazing, because the accuracy is 0.93 and actually the error are not real error. This is because, for example for the Pokemon "Exeggcute" the prediction types are "Psychic, Grass" and the real type are "Grass, Psychic". If the order of type was not important this cross validator did not make wrong predictions. The classier cannot understand the difference between "Psychic, Grass" and "Grass, Psychic" due to the same type effectiveness of the previous results.
+With the best parameters the results are amazing, because the accuracy is 0.86 and actually the error are not real error. This is because, for example for the Pokemon "Exeggcute" the prediction types are "Psychic, Grass" and the real type are "Grass, Psychic". If the order of type was not important this cross validator did not make wrong predictions. The classier cannot understand the difference between "Psychic, Grass" and "Grass, Psychic" due to the same type effectiveness of the previous results.
 
-Then we tried to use less parameters in the cross validator: maxDepth = (5), impurity = ("entropy", "gini") and maxBins = (20). This test is to understand if the task was too easy or not. The new accuracy is 0.59. From the results we found some wrong prediction, for example the Pokemon "Gengar" the prediction type is "(Poison)" but the real types are "(Ghost, Poison)". Actually it was not so far from the real answer. 
+Then we tried to use less parameters in the cross validator: maxDepth = (5), impurity = ("entropy", "gini") and maxBins = (20). This test is to understand if the task was too easy or not. The new accuracy is 0.55. From the results we found some wrong prediction, for example the Pokemon "Gengar" the prediction type is "(Poison)" but the real types are "(Ghost, Poison)". Actually it was not so far from the real answer.
 
 The parameters of the best tree are: 
 - maxDepth: 10
