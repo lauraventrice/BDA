@@ -308,10 +308,9 @@ object Problem3 {
       Edge(firstPokemon, secondPokemon, count)
     })
 
+    val mapPokemon = pokemon.map(p => (p.pokedexNumber, p)).collectAsMap()
     def getName(id: Int) = {
-      val elem = pokemon.filter(p => p.pokedexNumber.equals(id))
-      val s = elem.take(1).apply(0)
-      s.pokemonName
+      mapPokemon(id).pokemonName
     }
 
     val verticesPokemon = combatsData.flatMap(line => line.split(",")).map(p => (p.toLong, getName(p.toInt)))
