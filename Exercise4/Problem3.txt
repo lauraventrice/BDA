@@ -37,41 +37,31 @@ The parameters of the best tree are:
 - maxBins: 20
 
 (f)
+For this part we used the combact.csv file in order to create a graph.
 
-VERTICES: 784
-EDGES: 48048
+The first step has been parsing the file and create the list of vertices and edges. 
+The number of vertices is 784 and the edges are 48048. 
 
-Connected component: 1
+We performed a connected-components analysis of the combined set of edges and it is equal to 1.
 
-Degree distribution stats: (count: 784, mean: 122.571429, stdev: 10.780983, max: 160.000000, min: 90.000000)
+Other analysis that we implemented are: 
+	- Degree-distribution:
+	The average degree for all the vertex is 122, the maximum is 160 and the minimum is 90. By this analysis, we can say that the graph has some vertex with a lot of connections, but also that it is not a fully connected graph, because there are 122 degree as mean. 
 
-Top pokemon and degrees: 
-(Hoothoot,160)
-(Salazzle,153)
-(Mega Heracross,152)
-(Skrelp,152)
-(Litleo,150)
-(Claydol,150)
-(Steenee,150)
-(Reuniclus,149)
-(Swablu,149)
-(Beldum,148)
+	Top pokemon and degrees: 
+		(Hoothoot,160)
+		(Salazzle,153)
+		(Mega Heracross,152)
+		(Skrelp,152)
+		(Litleo,150)
+		(Claydol,150)
+		(Steenee,150)
+		(Reuniclus,149)
+		(Swablu,149)
+		(Beldum,148)
 
-Triangle count graph: (count: 784, mean: 1045.741071, stdev: 181.434317, max: 1675.000000, min: 561.000000)
-Average clustering coefficient: 0.13948511981174289
+	- Average-clustering Coefficient:
+	The average clustering coefficient is 1045.75, the maximum is 1675 and the minimum is 561. The mean for each vertex in the network is 0.1394. This result means that the graph is not fully connected, because the value is really far from 1 and near to 0. Although there are vertices with many connections, there are also a lot of vertices with less than 10 connections.
 
-Equal vertex: 156
-
-Stats about paths: (count: 7785, mean: 1.846371, stdev: 0.360593, max: 2.000000, min: 1.000000)
-
-Length , count for paths: 
-(0,10)
-(1,1196)
-(2,6589)
-
-
-
-
-
-
-
+	- Average path length: 
+	The average path length is 1.84, the maximum is 2 and the minimum is 1. There are also 10 path with length equal to 0, 1196 with length equal to 1 and 6589 paths with length equal to 2. 
