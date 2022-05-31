@@ -3,23 +3,18 @@ import org.apache.spark.ml.classification.DecisionTreeClassifier
 import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
 import org.apache.spark.ml.feature.{OneHotEncoder, StandardScaler, StringIndexer, VectorAssembler}
 import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
-import org.apache.spark.{SparkConf, SparkContext, sql}
+import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
 
 import java.io.{BufferedWriter, File, FileWriter}
 import scala.math._
 import scala.collection.mutable.ArrayBuffer
 import org.apache.spark.mllib.clustering.{KMeans, KMeansModel}
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{Row, SparkSession}
-import org.apache.spark.sql.types.{ArrayType, DoubleType, IntegerType, StringType, StructField, StructType}
-import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.ml.classification.{DecisionTreeClassifier, RandomForestClassifier}
+import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.graphx._
 import org.apache.spark.ml.stat.ChiSquareTest
-
-import java.io.{BufferedWriter, File, FileWriter}
-import scala.collection.mutable.ArrayBuffer
+import org.apache.spark.mllib.linalg._
 
 class Pokemon(id: Int, name: String, type1: String, type2: String, stats: Array[Int], generation: Char,
               finalEvo: Boolean, legendary: Boolean, mega: Boolean, typeEffectiveness: ArrayBuffer[Double],
@@ -75,16 +70,19 @@ object Problem3 {
         typeEffectiveness, height, weight)
     }
 
-    // TODO dove è meglio mettere l'array con i nomi delle stats e dei "typeEffectivness" (in pokemon o nel main?)
+    // Array with the typeEffectiveness in the same order for each Pokemon
+    val types = Array("Normal", "Fire", "Water", "Electric", "Grass", "Ice", "Fighting", "Poison", "Ground", "Flying",
+      "Psychic", "Bug", "Rock", "Ghost", "Dragon", "Dark", "Steel", "Fairy")
+    // Array with the stats in the same order for each Pokemon
+    val statsName = ("HP", "Attack", "Defense", "Special Attack", "Special Defense", "Speed")
+
     val pathCSV = "All_Pokemon.csv"
     val pokemonData = sc.textFile(pathCSV)
     val header = pokemonData.first()
     val pokemon = pokemonData.filter(!_.equals(header)).map(parse).cache()
 
-    /*
+
     //(b)
-    // TODO commentato per fare gli altri test (FUNZIONA)
-    // TODO scegli se tenere tutti questi metodi oppure fare qualcosa di più piccolo
     def normalize(value: Double, max: Double, min: Double): Double = (value-min) / (max-min)
 
     def clusterSquareDistance(data: RDD[Vector], meansModel: KMeansModel): Double = {
@@ -154,7 +152,7 @@ object Problem3 {
     val bestModel = models(bestSquareDistance._1/10 - 1)
 
     val totalExample = kMeansData.map(vector => bestModel.predict(vector) + "," + vector.toArray.mkString(","))
-    totalExample.repartition(1).saveAsTextFile("./totalExample")*/
+    totalExample.repartition(1).saveAsTextFile("./totalExample")
 
     //(c)
     def mostCommonType(rdd: RDD[Pokemon]) = {
@@ -194,17 +192,11 @@ object Problem3 {
 
     val finalEvo = finalEvoByGen(pokemon)
 
-    // TODO commentato per fare i test, questo funziona
-    /*
     //(e)
-    val columns = Array("Normal", "Fire", "Water", "Electric", "Grass", "Ice", "Fighting", "Poison", "Ground", "Flying",
-      "Psychic", "Bug", "Rock", "Ghost", "Dragon", "Dark", "Steel", "Fairy")
-
     var schema = new StructType().add(StructField("Name", StringType, nullable = false))
       .add(StructField("Type", StringType, nullable = false))
-    columns.foreach(x => schema = schema.add(StructField(x, StringType, nullable = false)))
+    types.foreach(x => schema = schema.add(StructField(x, StringType, nullable = false)))
 
-    // TODO rendilo più umano
     val data = pokemon.map(pokemon => {
       Row(pokemon.pokemonName, (pokemon.pokemonType1, pokemon.pokemonType2).toString(), pokemon.pokemonEffectiveness(0).toString, pokemon.pokemonEffectiveness(1).toString, pokemon.pokemonEffectiveness(2).toString,
         pokemon.pokemonEffectiveness(3).toString, pokemon.pokemonEffectiveness(4).toString, pokemon.pokemonEffectiveness(5).toString, pokemon.pokemonEffectiveness(6).toString,
@@ -219,7 +211,7 @@ object Problem3 {
 
     var index_columns_OHE: Array[String] = Array()
 
-    columns.foreach(elem => {index_columns_OHE = index_columns_OHE.union(Array(elem + "OHE"))})
+    types.foreach(elem => {index_columns_OHE = index_columns_OHE.union(Array(elem + "OHE"))})
 
     val labelIndexer = new StringIndexer()
       .setInputCol("Type")
@@ -227,12 +219,12 @@ object Problem3 {
       .setHandleInvalid("skip")
       .fit(trainData)
 
-    val stringIndexer = columns.map { colName =>
+    val stringIndexer = types.map { colName =>
       new StringIndexer()
         .setInputCol(colName)
         .setOutputCol(colName + "_index")
     }
-    val oneHotEncoder = columns.map { colName =>
+    val oneHotEncoder = types.map { colName =>
       new OneHotEncoder()
         .setInputCol(colName + "_index")
         .setOutputCol(colName + "OHE")
@@ -283,9 +275,8 @@ object Problem3 {
 
     val accuracy = predictionAndLabels.filter(pl => pl._1.equals(pl._2)).count().toDouble / testData.count().toDouble
     println(accuracy)
-     */
 
-
+    /*
     //(f)
 
     def parseCombat(data: String) = {
@@ -427,6 +418,8 @@ object Problem3 {
 
     val chi = ChiSquareTest.test(dataframe, "_2", "label").head
     println(s"pValues = ${chi.getAs[Vector](0)}")
+
+     */
 
   }
 }
