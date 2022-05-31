@@ -350,25 +350,79 @@ object Problem3 {
     }
     println(clusterCoefficientGraph.map(_._2).sum() / pokemonGraph.vertices.count())
 
-/*
+
     // PageRank API
     val ranks = pokemonGraph.pageRank(0.001, 0.15).vertices
     val namesAndRanks = ranks.innerJoin(pokemonGraph.vertices) {
       (vertexId, rank, name) => (name, rank)
     }
-    val ord = Ordering.by[(Array[String], Double), Double](_._2)
-    val top250 = namesAndRanks.map(_._2).top(250)(ord).map(elem => (elem._1.mkString("Array(", ", ", ")"), elem._2))
+    val ord = Ordering.by[(String, Double), Double](_._2)
+    val top250 = namesAndRanks.map(_._2).top(250)(ord).map(elem => (elem._1, elem._2))
 
     val namesAndRanksToCompare = degrees.innerJoin(pokemonGraph.vertices) {
       (vertexId, rank, name) => (name, rank)
     }
-    val ordToCompare = Ordering.by[(Array[String], Int), Int](_._2)
-    val top250ToCompare = namesAndRanksToCompare.map(_._2).top(250)(ordToCompare).map(elem => (elem._1.mkString("Array(", ", ", ")"), elem._2))
+    val ordToCompare = Ordering.by[(String, Int), Int](_._2)
+    val top250ToCompare = namesAndRanksToCompare.map(_._2).top(250)(ordToCompare).map(elem => (elem._1, elem._2))
 
     val equalVertex = top250.filter(elem => top250ToCompare.map(_._1).contains(elem._1))
     println("Equal")
     println(equalVertex.length)
 
+
+    // Average Path Length
+    def mergeMaps(m1: Map[VertexId, Int], m2: Map[VertexId, Int]): Map[VertexId, Int] = {
+      def minThatExists(k: VertexId): Int = {
+        math.min(m1.getOrElse(k, Int.MaxValue), m2.getOrElse(k, Int.MaxValue))
+      }
+      (m1.keySet ++ m2.keySet).map{ k => (k, minThatExists(k))}.toMap
+    }
+
+    def update(id: VertexId, state: Map[VertexId, Int], msg: Map[VertexId, Int]) = {
+      mergeMaps(state, msg)
+    }
+
+    def checkIncrement(a: Map[VertexId, Int], b: Map[VertexId, Int], bid: VertexId) = {
+      val aplus = a.map { case (v, d) => v -> (d + 1) }
+      if (b != mergeMaps(aplus, b)) {
+        Iterator((bid, aplus))
+      } else {
+        Iterator.empty
+      }
+    }
+
+    def iterate(e: EdgeTriplet[Map[VertexId, Int], _]) = {
+      checkIncrement(e.srcAttr, e.dstAttr, e.dstId) ++ checkIncrement(e.dstAttr, e.srcAttr, e.srcId)
+    }
+
+    val sampleVertices = pokemonGraph.vertices.map(v => v._1).sample(false, 0.01).collect().toSet
+
+    val mapGraph = pokemonGraph.mapVertices((id, _) => {
+      if (sampleVertices.contains(id)) {
+        Map(id -> 0)
+      } else {
+        Map[VertexId, Int]()
+      }
+    })
+
+    // Start the Pregel-style form of iterative breadth-first search
+    val start = Map[VertexId, Int]()
+    val res = mapGraph.pregel(start)(update, iterate, mergeMaps)
+
+    val paths = res.vertices.flatMap {
+      case (id, m) =>
+        m.map {
+          // merge symmetric (s,t) and (t,s) pairs into same canonical pair
+          case (k, v) => if (id < k) { (id, k, v) } else { (k, id, v) }
+        }
+    }.distinct()
+    paths.cache()
+    println(paths.map(_._3).filter(_ > 0).stats())
+
+    val hist = paths.map(_._3).countByValue()
+    hist.toSeq.sorted.foreach(println)
+
+    /*
     //chi square
     def inRange(int: Int, string: String) = {
       val tmp = string.replace("[", "").replace(")","").split(",")
@@ -418,8 +472,7 @@ object Problem3 {
 
     val chi = ChiSquareTest.test(dataframe, "_2", "label").head
     println(s"pValues = ${chi.getAs[Vector](0)}")
-
-     */
+    */
 
   }
 }
