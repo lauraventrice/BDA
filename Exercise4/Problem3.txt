@@ -1,9 +1,12 @@
-Cose da fare:
-(f)
-    Creare un grafo e fare le varie analisi da grafo usando il dataset dei combattimenti per vedere chi ha combattuto con chi e cose così
+# How to run
+
+scalac -classpath $(echo $SPARK_HOME/jars/*.jar common-1.0.0-jar-with-dependencies.jar | tr ' ' ':') Problem3.scala
+jar -cvf ./Problem3.jar *.class
+spark-submit -class Problem3 Problem3.scala
 
 # Explanation
-The main dataset of this project is based on the Pokemon world, the Nintendo videogame. Link for the dataset: https://www.kaggle.com/datasets/maca11/all-pokemon-dataset
+The main dataset of this project is based on the Pokemon world, the Nintendo videogame. 
+Link for the datasets: https://www.kaggle.com/datasets/maca11/all-pokemon-dataset  https://www.kaggle.com/datasets/terminus7/pokemon-challenge
 
 (a) 
 We defined a new Scala class Pokemon with appropriate fields to store some important attributes as the Pokemon's name and its types.
@@ -32,3 +35,43 @@ The parameters of the best tree are:
 - maxDepth: 10
 - impurity: entropy
 - maxBins: 20
+
+(f)
+
+VERTICES: 784
+EDGES: 48048
+
+Connected component: 1
+
+Degree distribution stats: (count: 784, mean: 122.571429, stdev: 10.780983, max: 160.000000, min: 90.000000)
+
+Top pokemon and degrees: 
+(Hoothoot,160)
+(Salazzle,153)
+(Mega Heracross,152)
+(Skrelp,152)
+(Litleo,150)
+(Claydol,150)
+(Steenee,150)
+(Reuniclus,149)
+(Swablu,149)
+(Beldum,148)
+
+Triangle count graph: (count: 784, mean: 1045.741071, stdev: 181.434317, max: 1675.000000, min: 561.000000)
+Average clustering coefficient: 0.13948511981174289
+
+Equal vertex: 156
+
+Stats about paths: (count: 7785, mean: 1.846371, stdev: 0.360593, max: 2.000000, min: 1.000000)
+
+Length , count for paths: 
+(0,10)
+(1,1196)
+(2,6589)
+
+
+
+
+
+
+
