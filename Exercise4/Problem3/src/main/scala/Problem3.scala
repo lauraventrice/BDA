@@ -13,7 +13,6 @@ import org.apache.spark.mllib.clustering.{KMeans, KMeansModel}
 import org.apache.spark.sql.{Row, SparkSession}
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.graphx._
-import org.apache.spark.ml.stat.ChiSquareTest
 import org.apache.spark.mllib.linalg._
 
 class Pokemon(id: Int, name: String, type1: String, type2: String, stats: Array[Int], generation: Char,
@@ -81,7 +80,6 @@ object Problem3 {
     val header = pokemonData.first()
     val pokemon = pokemonData.filter(!_.equals(header)).map(parse).cache()
 
-/*
     //(b)
     def normalize(value: Double, max: Double, min: Double): Double = (value-min) / (max-min)
 
@@ -275,10 +273,8 @@ object Problem3 {
 
     val accuracy = predictionAndLabels.filter(pl => pl._1.equals(pl._2)).count().toDouble / testData.count().toDouble
     println(accuracy)
-*/
 
     //(f)
-
     def parseCombat(data: String) = {
       val line = data.split(",")
       val firstPokemon = line(0).toInt
@@ -314,8 +310,7 @@ object Problem3 {
 
     val pokemonGraph = Graph(verticesPokemon, edges)
 
-    //connected component
-
+    //Connected component
     val connectedComponentGraph: Graph[VertexId, Int] = pokemonGraph.connectedComponents()
 
     def sortedConnectedComponents(connectedComponents: Graph[VertexId, _]): Seq[(VertexId, Long)] = {
@@ -368,111 +363,5 @@ object Problem3 {
     val equalVertex = top250.filter(elem => top250ToCompare.map(_._1).contains(elem._1))
     println("Equal")
     println(equalVertex.length)
-
-
-    // Average Path Length
-    def mergeMaps(m1: Map[VertexId, Int], m2: Map[VertexId, Int]): Map[VertexId, Int] = {
-      def minThatExists(k: VertexId): Int = {
-        math.min(m1.getOrElse(k, Int.MaxValue), m2.getOrElse(k, Int.MaxValue))
-      }
-      (m1.keySet ++ m2.keySet).map{ k => (k, minThatExists(k))}.toMap
-    }
-
-    def update(id: VertexId, state: Map[VertexId, Int], msg: Map[VertexId, Int]) = {
-      mergeMaps(state, msg)
-    }
-
-    def checkIncrement(a: Map[VertexId, Int], b: Map[VertexId, Int], bid: VertexId) = {
-      val aplus = a.map { case (v, d) => v -> (d + 1) }
-      if (b != mergeMaps(aplus, b)) {
-        Iterator((bid, aplus))
-      } else {
-        Iterator.empty
-      }
-    }
-
-    def iterate(e: EdgeTriplet[Map[VertexId, Int], _]) = {
-      checkIncrement(e.srcAttr, e.dstAttr, e.dstId) ++ checkIncrement(e.dstAttr, e.srcAttr, e.srcId)
-    }
-
-    val sampleVertices = pokemonGraph.vertices.map(v => v._1).sample(false, 0.01).collect().toSet
-
-    val mapGraph = pokemonGraph.mapVertices((id, _) => {
-      if (sampleVertices.contains(id)) {
-        Map(id -> 0)
-      } else {
-        Map[VertexId, Int]()
-      }
-    })
-
-    // Start the Pregel-style form of iterative breadth-first search
-    val start = Map[VertexId, Int]()
-    val res = mapGraph.pregel(start)(update, iterate, mergeMaps)
-
-    val paths = res.vertices.flatMap {
-      case (id, m) =>
-        m.map {
-          // merge symmetric (s,t) and (t,s) pairs into same canonical pair
-          case (k, v) => if (id < k) { (id, k, v) } else { (k, id, v) }
-        }
-    }.distinct()
-    paths.cache()
-    println(paths.map(_._3).filter(_ > 0).stats())
-
-    val hist = paths.map(_._3).countByValue()
-    hist.toSeq.sorted.foreach(println)
-
-    /*
-    //chi square
-    def inRange(int: Int, string: String) = {
-      val tmp = string.replace("[", "").replace(")","").split(",")
-      var boolean = false
-      if(string.equals("[90,inf)")){
-        boolean = int >= tmp(0).toInt
-      }
-      else {
-        boolean = int >= tmp(0).toInt && int < tmp(1).toInt
-      }
-      boolean
-    }
-
-    val bucket = Array("[0,10)", "[10,20)", "[20,30)", "[30,40)", "[40,50)", "[50,60)", "[60,70)", "[70,80)", "[80,90)", "[90,inf)")
-
-    def addZeroElement(rdd: RDD[(String, Vector)]) = {
-      val tmp: ArrayBuffer[String] = ArrayBuffer.empty
-      bucket.indices.foreach(int => {
-        bucket.indices.foreach(index => {
-          tmp.append(bucket(int) + "," + bucket(index))
-        })
-      })
-      val rddDiff: ArrayBuffer[(String, Vector)] = ArrayBuffer.empty
-      tmp.foreach(elem => {
-        if(rdd.filter(x => x._1.equals(elem)).count() == 0.0){
-          rddDiff.append((elem, Vectors.dense(0.0)))
-        }
-      })
-      rddDiff
-    }
-
-    val degreesMap = degrees.map(elem => (elem._1, elem._2)).flatMap(x => bucket.collect{
-      case i if inRange(x._2, i) => (x._1.toLong, i)
-    })
-
-    val featuresMap = featureNames.map(elem => (elem._1, elem._2.length)).flatMap(x => bucket.collect{
-      case i if inRange(x._2, i) => (x._1.toLong, i)
-    })
-
-    var rdd = degreesMap.join(featuresMap).groupBy(elem => elem._2).map(elem => (elem._1.toString(), Vectors.dense(elem._2.size)))
-
-    rdd = rdd.union(sc.parallelize(addZeroElement(rdd)))
-
-    var dataframe = spark.createDataFrame(rdd).toDF()
-
-    dataframe = new StringIndexer().setInputCol("_1").setOutputCol("label").fit(dataframe).transform(dataframe)
-
-    val chi = ChiSquareTest.test(dataframe, "_2", "label").head
-    println(s"pValues = ${chi.getAs[Vector](0)}")
-    */
-
   }
 }
