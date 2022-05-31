@@ -81,7 +81,7 @@ object Problem3 {
     val header = pokemonData.first()
     val pokemon = pokemonData.filter(!_.equals(header)).map(parse).cache()
 
-
+/*
     //(b)
     def normalize(value: Double, max: Double, min: Double): Double = (value-min) / (max-min)
 
@@ -275,8 +275,8 @@ object Problem3 {
 
     val accuracy = predictionAndLabels.filter(pl => pl._1.equals(pl._2)).count().toDouble / testData.count().toDouble
     println(accuracy)
+*/
 
-    /*
     //(f)
 
     def parseCombat(data: String) = {
@@ -331,14 +331,14 @@ object Problem3 {
     println(degrees.map(_._2).stats())
 
 
-    def topNamesAndDegrees(degrees: VertexRDD[Int], topicGraph: Graph[Array[String], Int]): Array[(String, Int)] = {
-      val namesAndDegrees = degrees.innerJoin(topicGraph.vertices) {
-        (vertexId, degree, name) => (name.mkString("Array(", ", ", ")"), degree) }
+    def topNamesAndDegrees(degrees: VertexRDD[Int], pokemonGraph: Graph[String, Int]): Array[(String, Int)] = {
+      val namesAndDegrees = degrees.innerJoin(pokemonGraph.vertices) {
+        (_ , degree, name) => (name, degree) }
       val ord = Ordering.by[(String, Int), Int](_._2)
       namesAndDegrees.map(_._2).top(10)(ord)
     }
 
-    topNamesAndDegrees(degrees, graph).foreach(println)
+    topNamesAndDegrees(degrees, pokemonGraph).foreach(println)
 
     // Average clustering-coefficient
     val triangleCountGraph = pokemonGraph.triangleCount()
@@ -350,7 +350,7 @@ object Problem3 {
     }
     println(clusterCoefficientGraph.map(_._2).sum() / pokemonGraph.vertices.count())
 
-
+/*
     // PageRank API
     val ranks = pokemonGraph.pageRank(0.001, 0.15).vertices
     val namesAndRanks = ranks.innerJoin(pokemonGraph.vertices) {
