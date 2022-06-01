@@ -1,0 +1,64 @@
+# How to run
+
+scalac -classpath $(echo $SPARK_HOME/jars/*.jar common-1.0.0-jar-with-dependencies.jar | tr ' ' ':') Problem3.scala
+jar -cvf ./Problem3.jar *.class
+spark-submit -class Problem3 Problem3.scala
+
+# Explanation
+The main dataset of this project is based on the Pokemon world, the Nintendo videogame. 
+Link for the datasets: https://www.kaggle.com/datasets/maca11/all-pokemon-dataset  https://www.kaggle.com/datasets/terminus7/pokemon-challenge
+
+(a) 
+We defined a new Scala class Pokemon with appropriate fields to store some important attributes as the Pokemon's name and its types.
+
+(b)
+We clustered the Pokemon for them height and weight using kMeans algorithm. We normalized the scales of the values (because kMeans works better with parameters with the same scale).
+
+The next point was to choose the best number of cluster "k" for clustering. We used the squared distance in order to obtain this value. We computed this metric on a number of cluster between 10 and 50.
+The main idea is that if we plot the squared distance for each cluster we can obtain an hyperbole in which the location of a bend (knee) is generally considered as an indicator of the appropriate number of clusters (Elbow method). It is also possible to plot this graph on the python source code attached. To obtain the same result in an unsupervised learning we decided a threshold. If from a step to another there is less than the amount of threshold of difference, it means that we need to stop here, because we found the correct value. 
+Eventually, we saved the whole set of elements with their cluster in order to plot them with the notebook.
+
+(c)
+We computed the most common Pokemon type and we printed the most powerful Pokemon (by its statistics) for this type. Then, we found the strongest Pokemon to compare him with the previous result. We discovered that they are not the same Pokemon, because the strongest one is of Psychic type, but the most common type is Water.
+
+(d)
+We grouped the legendaries Pokemon for each generation and we printed them. Then we did the same grouping, but for finalEvo Pokemon which are not also legendaries nor mega evolution.
+
+(e)
+We used a cross validation model to predict the Pokemon type from his effectiveness. The parameters for the cv are: maxDepth = (5, 10, 15), impurity = ("entropy", "gini") and maxBins = (20, 50, 100). We also used the StringIndexer to convert the strings in numbers. Eventually, we studied the results to comment them.
+
+With the best parameters the results are amazing, because the accuracy is 0.86 and actually the error are not real error. This is because, for example for the Pokemon "Exeggcute" the prediction types are "Psychic, Grass" and the real type are "Grass, Psychic". If the order of type was not important this cross validator did not make wrong predictions. The classier cannot understand the difference between "Psychic, Grass" and "Grass, Psychic" due to the same type effectiveness of the previous results.
+
+Then we tried to use less parameters in the cross validator: maxDepth = (5), impurity = ("entropy", "gini") and maxBins = (20). This test is to understand if the task was too easy or not. The new accuracy is 0.55. From the results we found some wrong prediction, for example the Pokemon "Gengar" the prediction type is "(Poison)" but the real types are "(Ghost, Poison)". Actually it was not so far from the real answer.
+
+The parameters of the best tree are: 
+- maxDepth: 10
+- impurity: entropy
+- maxBins: 20
+
+(f)
+For this part we used the combact.csv file in order to create a graph.
+
+The first step has been parsing the file and create the list of vertices and edges. 
+The number of vertices is 784 and the edges are 48048. 
+
+We performed a connected-components analysis of the combined set of edges and it is equal to 1.
+
+Other analysis that we implemented are: 
+	- Degree-distribution:
+	The average degree for all the vertex is 122, the maximum is 160 and the minimum is 90. By this analysis, we can say that the graph has some vertex with a lot of connections, but also that it is not a fully connected graph, because there are 122 degree as mean. 
+
+	Top pokemon and degrees: 
+		(Hoothoot,160)
+		(Salazzle,153)
+		(Mega Heracross,152)
+		(Skrelp,152)
+		(Litleo,150)
+		(Claydol,150)
+		(Steenee,150)
+		(Reuniclus,149)
+		(Swablu,149)
+		(Beldum,148)
+
+	- Average-clustering Coefficient:
+	The average clustering coefficient is 1045.75, the maximum is 1675 and the minimum is 561. The mean for each vertex in the network is 0.1394. This result means that the graph is not fully connected, because the value is really far from 1 and near to 0. Although there are vertices with many connections, there are also a lot of vertices with less than 10 connections.
