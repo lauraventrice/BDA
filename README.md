@@ -1,7 +1,7 @@
 # Big Data Analytics project
 Development of exercises for Big Data Analytics course at University of Luxembourg.
 
-There were 4 exercises completed during the semester, each focusing on a different topic on which to apply big data analysis techniques. Each of the exercises consisted of 3 problems.
+There were 4 exercises completed during the semester, each focusing on a different topic on which to apply big data analysis techniques. Each of the exercises consisted of 3 problems. Furthermore, within each exercise there are readmes for each problem, where considerations and results obtained are included. 
 
 The three problems proposed in the first exercise are as follows: 
 - Modified Word Counting via the Java API of Hadoop using wikipedia articles.
@@ -37,7 +37,6 @@ The three problems proposed in the fourth exercise are as follows:
 - Analyzing Traffic Safety Data using “Motor Vehicle Collisions” open data collection (available from https://data.cityofnewyork.us/)
 
 - Final Big Data Use-Case which was an exercise in which we were free to choose datasets and what type of analysis to perform. The datasets chosen were about Pokémon: 
-
 https://www.kaggle.com/datasets/maca11/all-pokemon-dataset  https://www.kaggle.com/datasets/terminus7/pokemon-challenge
 
 
