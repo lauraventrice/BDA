@@ -1,0 +1,38 @@
+# Explanation
+
+(a)
+First, in order to parse the feature for each node we loaded the wholeTextFiles of “.feat”, “.featnames” and “.egofeat”. The main idea is to join together these files and obtain an rdd of (String, Array[String]) where the first entry is the vertexID and the second one is an array of the features’ name.
+
+After, we created the edges using the “twitter_combined.txt” (for each of the edge we count the number of occurrence and we used this number as edge’s weight). 
+For the vertices, we just used the featureNames created before.
+
+For this part we need less than 30 minutes.
+
+(b)
+We performed a connected-components analysis of the combined set of edges. The number of connected components is equal to 1.
+
+(c)
+Degree-distribution:
+The average degree for all the vertex is 43, the maximum is 3758 and the minimum is 1. By this analysis, we can say that the graph has some vertex with a lot of connections, but also that it is not a fully connected graph, because there are 43 degree as mean. For example, there is at least one vertex with 3758 of degree which is half the number of the whole set of vertices. 
+We also saw that the top vertices have a lot of famous hashtags as "BarackObama", "JoeBiden", "amazon" or "ItunesMusic".
+
+Average-clustering Coefficient:
+The average clustering coefficient is 482.71, the maximum is 96815 and the minimum is 0. The mean for each vertex in the network is 0.3689. This result means that the graph is not fully connected, because the value is really far from 1 and near to 0. Although there are vertices with many connections, there are also a lot of vertices with less than 10 connections.
+
+The last part about the average path length using pregel does not work. We assume that it is because we have one big network to scan due to the number of messages that each vertex has to send to the others. For this reason we have some memory problem also in the hpc cluster.
+Obviously We are not sure about this assumption, but we did not find another explanation. We also tried to modify the function from the original script, but also with some modifications it does not work. 
+
+(d)
+We used the PageRank API to obtain the 250 nodes with the highest PageRank value. Then we selected the 250 nodes with the highest in and out degree.
+We could see that there are some equal nodes between these two analysis, but there are also some different nodes. In total, the nodes in both "top250" are 126, so more than half are the same.
+
+(e)
+In this point we created a dataframe (to use in the ChiSquareTest function) as follow:
+Label, Number_Of_Vertex_In_That_Label
+So, we did not create an 10x10 buckets, but we abstracted the idea in this dataframe. The two structures are pretty similar. We just merge the columns and the rows in our "label" (for example "[0,10),[30,40)" is the label which has the row "[0,10)" and the column "[30,40)", respectively the range of degrees and the range of features).
+
+Next, we added to the dataframe the pairs row-column which were not in the structure yet (with the value 0.0 for the number of vertex for these labels).
+
+The p-value is [0.38183857602057114] and the degrees of freedom are ((rows-1)(column-1) = (99)(1)) 99. If we chose alpha = 0.05 we can say that our hypothesis is accepted.
+
+In total this exercise needs about 1 hour to be executed.
