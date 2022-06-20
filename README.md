@@ -1,7 +1,7 @@
 # Big Data Analytics project
 Development of exercises for Big Data Analytics course at University of Luxembourg.
 
-There were 4 exercises completed during the semester, each focusing on a different topic on which to apply big data analysis techniques. Each of the exercises consisted of 3 problems. Furthermore, within each exercise there are readmes for each problem, where considerations and results obtained are included. 
+There were 4 exercises completed during the semester, each focusing on a different topic on which to apply big data analysis techniques. Each of the exercises consisted of 3 problems. Furthermore, within each exercise there are README.md for each problem, where considerations and results obtained are included. 
 
 The three problems proposed in the first exercise are as follows: 
 - Modified Word Counting via the Java API of Hadoop using wikipedia articles.
