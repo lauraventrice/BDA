@@ -1,0 +1,64 @@
+#How to run 
+
+scalac -classpath $SPARK_HOME/jars/*:. Problem2.scala
+jar -cvf Problem2.jar Problem2*.class
+spark-submit --class Problem2 Problem2.jar
+
+##Explanation and results
+
+(a) We parsed the input files into an RDD using the function "parseNOAA" and then we trasformed the RDD into a Dataframe using "createDataFrame" of SparkSession. 
+
+(b) We split the data using the filter function of DataFrame and then we created the pipeline with 3 stages: 
+
+- VectorAssembler: in order to merge all features into a vector column;
+- StandardScalar: in order to decrease the convergence time
+- RandomForestRegressor: which is the model that we had to use in order to predict temperature. 
+
+AGGIUNGERE TEMPI CON CROSSVALIDATION E HPC
+We also used cross validation in order to optimize the hyper-parameters and we obtained the following results in about one hour: 
+
+- maxBins : 100
+- maxDepth : 14
+
+
+We also created a new file called "testData2" with testData of recent dates in 2022, 13/04 - 14/04 - 15/04 - 16/04. 
+
+In that days we had this min max temperature (accuweather.com): 
+
+13/04 : 10 - 21
+14/04 : 11 - 19
+15/04 :  9 - 18
+16/04 :  4 - 15
+
+and the result that we obtain are : 
+
+13/04 : 10.134
+14/04 : 9.647
+15/04 : 9.372
+16/04 : 8.892
+
+(c) We calculated the Mean Squared Error (MSE) using the following instruction: 
+
+val testMSE = predictionAndLabels.map{ case (v, p) => math.pow(v - p, 2) }.mean()
+
+with result = 4.3293383387560676
+
+(d) In order to calculate the Spearman's correlation coefficient we had to select from the dataFrame our target attribute ("airTemperature") and then for each feature we selected the column and compute the coefficient. In the meantime we compare each correlation with the highest one. 
+
+Our result are: 
+- year                   : 0.08732237140018463
+- month                  : 0.17858261462533215 
+- day                    : 0.010287163668393598
+- hour                   : 0.10136936030026267
+- latitude               : 0.039160984224678015 
+- longitude              : -0.021573977145003614
+- elevationDimension     : -0.08376849777028285
+- directionAngle         : 0.03894336020450883
+- speedRate              : -0.03239235217082768
+- ceilingHeightDimension : 0.32387637788079404
+- distanceDimension      : 0.3175372489280518
+- dewPointTemperature    : 0.8488608813337207 
+
+Thus the attribute which has the highest correlation with airTemperature is dewPointTemperature. 
+
+
